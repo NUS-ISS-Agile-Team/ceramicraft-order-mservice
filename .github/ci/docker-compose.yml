@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: order_db
+    # Pure memory, disappears when CI ends
+    tmpfs: /var/lib/mysql
+    networks:
+      ci-net:
+        aliases:
+          - mysql-container   # 别名，Go 通过这个名字连接 MySQL
+
+  ceramicraft-order-mservice:
+    build:
+      context: ../../server
+      dockerfile: Dockerfile
+    container_name: ceramicraft-order-mservice
+    environment:
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    depends_on:
+      - mysql
+    networks:
+      - ci-net
+    ports:
+      - "8080:8080"   # 只给宿主机（ZAP）用
+    command: ["sh", "-c", "apt-get update && apt-get install -y netcat-openbsd && chmod +x /app/wait-for.sh && ./wait-for.sh mysql-container 3306 ./main"]
+    volumes:
+      - ./wait-for.sh:/app/wait-for.sh   # CI 专用配置
+    user: root
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/order-ms/v1/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+networks:
+  ci-net:

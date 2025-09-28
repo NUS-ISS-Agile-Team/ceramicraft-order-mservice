@@ -1,0 +1,103 @@
+name: Deploy Go to EC2 (manual)
+
+on:
+  workflow_dispatch:          # ← Manual trigger button
+    inputs:
+      version:
+        description: 'version'
+        required: false
+        default: 'latest'
+        type: string
+      command:
+        description: 'deploy or restart'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - deploy
+          - restart
+          - rollback
+
+jobs:
+  generate-env:
+    name: Generate .env file
+    runs-on: ubuntu-latest
+    outputs:
+      env-path: ${{ steps.set-output.outputs.env-path }}
+    steps:
+      - name: Generate .env file
+        run: |
+          echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> env-file
+      - name: Upload env-file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: env-file
+          path: env-file
+  build:
+    if: ${{ github.event.inputs.command == 'deploy' }} # ← 仅在 deploy 时构建
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: login to dockerhub
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: build docker image
+        run: |
+          docker build -t "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}" server/
+      - name: push to dockerhub
+        run: |
+          docker push "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+  deploy:
+    if: ${{ github.event.inputs.command == 'deploy' }}
+    needs: 
+        - build
+        - generate-env
+    runs-on: self-hosted
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+    steps:
+      - name: Download .env file
+        uses: actions/download-artifact@v4
+        with:
+          name: env-file
+          path: .
+      - name: pull the docker image
+        run: |
+          docker pull "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+      - name: run docker container
+        run: |
+          docker stop ceramicraft-order-mservice || true
+          docker rm ceramicraft-order-mservice || true
+          docker run -d --name ceramicraft-order-mservice --network ceramicraft-network --env-file env-file "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+  restart:
+    if: ${{ github.event.inputs.command == 'restart' }}
+    runs-on: self-hosted
+    steps:
+      - name: restart docker container
+        run: |
+          docker restart ceramicraft-order-mservice || true
+  rollback:
+    if: ${{ github.event.inputs.command == 'rollback' }}
+    runs-on: self-hosted
+    needs: generate-env
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+    steps:
+      - name: Download .env file
+        uses: actions/download-artifact@v4
+        with:
+          name: env-file
+          path: .
+      - name: pull the docker image
+        run: |
+          docker pull "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+      - name: run docker container
+        run: |
+          docker stop ceramicraft-order-mservice || true
+          docker rm ceramicraft-order-mservice || true
+          docker run -d --name ceramicraft-order-mservice --network ceramicraft-network --env-file env-file "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
