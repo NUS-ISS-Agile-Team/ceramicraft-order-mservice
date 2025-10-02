@@ -28,6 +28,7 @@ jobs:
       - name: Generate .env file
         run: |
           echo "MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}" >> env-file
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> env-file
       - name: Upload env-file as artifact
         uses: actions/upload-artifact@v4
         with:
