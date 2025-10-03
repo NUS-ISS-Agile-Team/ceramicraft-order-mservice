@@ -10,6 +10,7 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/http"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/log"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-user-mservice/common/utils"
 )
 
 var (
@@ -20,6 +21,7 @@ func main() {
 	config.Init()
 	log.InitLogger()
 	repository.Init()
+	utils.InitJwtSecret()
 	go grpc.Init(sigCh)
 	go http.Init(sigCh)
 	// listen terminage signal

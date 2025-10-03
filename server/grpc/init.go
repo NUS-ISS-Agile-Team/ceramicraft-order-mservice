@@ -28,7 +28,7 @@ func Init(exitSig chan os.Signal) {
 		grpc.MaxSendMsgSize(1024 * 1024), // Set maximum send message size (1MB here)
 	}
 	grpcServer := grpc.NewServer(opts...)
-	demopb.RegisterDemoServiceServer(grpcServer, &UserService{})
+	demopb.RegisterDemoServiceServer(grpcServer, &DemoService{})
 
 	log.Logger.Infof("Server is running on %s", ipPort)
 	if err := grpcServer.Serve(listener); err != nil {
