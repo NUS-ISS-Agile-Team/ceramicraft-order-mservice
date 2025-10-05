@@ -6,6 +6,7 @@ require (
 	github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/common v0.0.0-20250928114520-6e4343bff960
 	github.com/NUS-ISS-Agile-Team/ceramicraft-user-mservice/common v0.0.0-20250928025834-45b508404058
 	github.com/gin-gonic/gin v1.11.0
+	github.com/golang/mock v1.6.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/files v1.0.1
@@ -20,6 +21,8 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
+	github.com/NUS-ISS-Agile-Team/ceramicraft-commodity-mservice/client v0.0.0-20251005062820-4c14c1d9d018 // indirect
+	github.com/NUS-ISS-Agile-Team/ceramicraft-commodity-mservice/common v0.0.0-20251005054455-2b51b4350ad5 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect

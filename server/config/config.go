@@ -11,10 +11,11 @@ var (
 )
 
 type Conf struct {
-	GrpcConfig  *GrpcConfig `mapstructure:"grpc"`
-	LogConfig   *LogConfig  `mapstructure:"log"`
-	HttpConfig  *HttpConfig `mapstructure:"http"`
-	MySQLConfig *MySQL      `mapstructure:"mysql"`
+	GrpcConfig      *GrpcConfig      `mapstructure:"grpc"`
+	LogConfig       *LogConfig       `mapstructure:"log"`
+	HttpConfig      *HttpConfig      `mapstructure:"http"`
+	MySQLConfig     *MySQL           `mapstructure:"mysql"`
+	CommodityClient *CommodityClient `mapstructure:"commodityClient"`
 }
 
 type HttpConfig struct {
@@ -40,6 +41,11 @@ type MySQL struct {
 	UserName string `mapstructure:"userName"`
 	Password string `mapstructure:"password"`
 	DBName   string `mapstructure:"dbName"`
+}
+
+type CommodityClient struct {
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
 }
 
 func Init() {

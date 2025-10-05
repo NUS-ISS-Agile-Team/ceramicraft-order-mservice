@@ -13,7 +13,11 @@ log:
   file_path: ./logs/ceramicraft-order-mservice.log
 
 mysql:
-  host: "mysql-container"
+  host: "mysql-container" # 127.0.0.1 mysql-container
   port: "3306"
   userName: "root"
   dbName: "order_db"
+
+commodityClient:
+  host: "ceramicraft-commodity-mservice"
+  port: 5001
