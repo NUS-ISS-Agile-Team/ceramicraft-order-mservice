@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -77,6 +78,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	orderId := utils.GenerateOrderID()
 
 	// 3. save order Info to database
+	// 3.1 save order Info
 	_, err = dao.GetOrderDao().Create(ctx, &model.Order{
 		OrderNo:           orderId,
 		UserID:            orderInfo.UserID,
@@ -99,8 +101,30 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 
+	// 3.2 save order items
+	for _, orderItem := range orderInfo.OrderItemList {
+		_, err := dao.GetOrderProductDao().Create(ctx, &model.OrderProduct{
+			OrderNo: orderId,
+			ProductID: orderItem.ProductID,
+			ProductName: orderItem.ProductName,
+			Price: orderItem.Price,
+			Quantity: orderItem.Quantity,
+			TotalPrice: (orderItem.Price * orderItem.Quantity),
+			CreateTime: time.Now(),
+			UpdateTime: time.Now(),
+		})
+		if err != nil {
+			log.Logger.Errorf("CreateOrder: create order item failed, err: %s", err.Error())
+			return "", err
+		}
+	}
+
 	// 4. message queue: send msg -- order ID
-	// TODO
+	err = utils.SendMsg(ctx, "order_created", orderId, strconv.Itoa(orderInfo.UserID))
+	if err != nil {
+		log.Logger.Errorf("CreateOrder: send message failed, err %s", err.Error())
+		return "", err
+	}
 
 	// 5. rpc: call product service and decrease stock
 	for _, orderItem := range orderInfo.OrderItemList {

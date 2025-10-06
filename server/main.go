@@ -10,8 +10,9 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/grpc"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/http"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/log"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository"
-	"github.com/NUS-ISS-Agile-Team/ceramicraft-user-mservice/common/utils"
+	userUtils "github.com/NUS-ISS-Agile-Team/ceramicraft-user-mservice/common/utils"
 )
 
 var (
@@ -26,7 +27,8 @@ func main() {
 	config.Init()
 	log.InitLogger()
 	repository.Init()
-	utils.InitJwtSecret()
+	userUtils.InitJwtSecret()
+	utils.InitKafka()
 	clients.InitAllClients(config.Config)
 	go grpc.Init(sigCh)
 	go http.Init(sigCh)
@@ -34,4 +36,5 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigCh // Block until signal is received
 	log.Logger.Infof("Received signal: %v, shutting down...", sig)
+	utils.CloseKafka()
 }

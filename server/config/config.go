@@ -6,9 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	Config = &Conf{}
-)
+var Config = &Conf{}
 
 type Conf struct {
 	GrpcConfig      *GrpcConfig      `mapstructure:"grpc"`
@@ -16,6 +14,7 @@ type Conf struct {
 	HttpConfig      *HttpConfig      `mapstructure:"http"`
 	MySQLConfig     *MySQL           `mapstructure:"mysql"`
 	CommodityClient *CommodityClient `mapstructure:"commodityClient"`
+	KafkaConfig     *KafkaConfig     `mapstructure:"kafka"`
 }
 
 type HttpConfig struct {
@@ -48,9 +47,20 @@ type CommodityClient struct {
 	Port int    `mapstructure:"port"`
 }
 
+type KafkaConfig struct {
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
+}
+
+var UseLocalConfig = false
+
 func Init() {
 	workDir, _ := os.Getwd()
-	viper.SetConfigName("config")
+	if UseLocalConfig {
+        viper.SetConfigName("config-local")
+    } else {
+        viper.SetConfigName("config")
+    }
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(workDir + "/resources")
 	viper.AddConfigPath(workDir)
