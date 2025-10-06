@@ -34,3 +34,5 @@ go.work.sum
 server/logs/
 
 .vscode/
+
+server/resources/config-local.yml
