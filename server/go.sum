@@ -14,6 +14,12 @@ github.com/NUS-ISS-Agile-Team/ceramicraft-commodity-mservice/common v0.0.0-20251
 github.com/NUS-ISS-Agile-Team/ceramicraft-commodity-mservice/common v0.0.0-20251005054455-2b51b4350ad5/go.mod h1:M6wcVOK64wlV9q8wMYC7EuIck4DyoH/HToxkG7+GY6A=
 github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/common v0.0.0-20250928114520-6e4343bff960 h1:Vpnrs+LU9Kyc2ThOteehXraXykZW3Fu7x50jhb3Q+P8=
 github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/common v0.0.0-20250928114520-6e4343bff960/go.mod h1:9uyHoT6pHxTcxi1LnNmZkBMvWqpvivoI5Kh/jQmj7Gs=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/client v0.0.0-20251005130723-d33cc0ba0cdf h1:6GaPpz0ymiwho/9kOsc/+m0c/VoOx7mM8rfTd3+ZP0U=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/client v0.0.0-20251005130723-d33cc0ba0cdf/go.mod h1:g8CSvJL1Nt1fEP1iLxIwSxyaa4LNCxihlv6fTiO376k=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v0.0.0-20251005130221-f8a4ee56cb0c h1:+1jGJGzDBmqIhLNcx5dN1r2xYgpU9k5vvGN77Kv+EzA=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v0.0.0-20251005130221-f8a4ee56cb0c/go.mod h1:pNMAqf0fw1LlXPeXdG2ZJn9kxihIjAYwXQ+pl+dJu/M=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v1.0.5-0.20251006135536-e0bafdaafee0 h1:KUTCSaL2bYeFO/eYyTciYw0/YAD0zhC6UCGVOXOcNis=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v1.0.5-0.20251006135536-e0bafdaafee0/go.mod h1:pNMAqf0fw1LlXPeXdG2ZJn9kxihIjAYwXQ+pl+dJu/M=
 github.com/NUS-ISS-Agile-Team/ceramicraft-user-mservice/common v0.0.0-20250928025834-45b508404058 h1:3jvDYhmTTMaHGX2z1mIzO13NKppGRsRYmRwdc4CO2HU=
 github.com/NUS-ISS-Agile-Team/ceramicraft-user-mservice/common v0.0.0-20250928025834-45b508404058/go.mod h1:37OvOYo/KVtH7LdbUnKLitzsC6qE6LCGF6sgaFHzE7E=
 github.com/PuerkitoBio/purell v1.1.1 h1:WEQqlqaGbrPkxLJWfBwQmfEAE1Z7ONdDLqrN38tNFfI=

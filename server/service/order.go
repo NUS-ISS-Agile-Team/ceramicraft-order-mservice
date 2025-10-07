@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -15,6 +16,7 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common/paymentpb"
 )
 
 type OrderService interface {
@@ -104,14 +106,14 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	// 3.2 save order items
 	for _, orderItem := range orderInfo.OrderItemList {
 		_, err := dao.GetOrderProductDao().Create(ctx, &model.OrderProduct{
-			OrderNo: orderId,
-			ProductID: orderItem.ProductID,
+			OrderNo:     orderId,
+			ProductID:   orderItem.ProductID,
 			ProductName: orderItem.ProductName,
-			Price: orderItem.Price,
-			Quantity: orderItem.Quantity,
-			TotalPrice: (orderItem.Price * orderItem.Quantity),
-			CreateTime: time.Now(),
-			UpdateTime: time.Now(),
+			Price:       orderItem.Price,
+			Quantity:    orderItem.Quantity,
+			TotalPrice:  (orderItem.Price * orderItem.Quantity),
+			CreateTime:  time.Now(),
+			UpdateTime:  time.Now(),
 		})
 		if err != nil {
 			log.Logger.Errorf("CreateOrder: create order item failed, err: %s", err.Error())
@@ -126,6 +128,13 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 
+	go func() {
+		err = utils.SendMsg(ctx, "order_status_changed", orderId, "1")
+		if err != nil {
+			log.Logger.Errorf("send message failed, err %s", err)
+		}
+	}()
+
 	// 5. rpc: call product service and decrease stock
 	for _, orderItem := range orderInfo.OrderItemList {
 		_, _ = psClient.UpdateStockWithCAS(ctx, &productpb.UpdateStockWithCASRequest{
@@ -136,11 +145,39 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 
 	// 6. rpc: call payment service and pay
 	// TODO
-
-	// 6.1 payment success
+	payClient := clients.GetPaymentClient()
+	payResp, err := payClient.PayOrder(ctx, &paymentpb.PayOrderRequest{
+		UserId: int32(orderInfo.UserID),
+		Amount: int32(itemTotalAmount + shippingFee + tax),
+		BizId:  orderId,
+	})
 
 	// 6.2 payment failed
+	if err != nil || payResp.Code != 0 {
+		if err == nil {
+			errMsg := paymentpb.RespCode_name[payResp.Code]
+			err = errors.New(errMsg)
+		}
+		log.Logger.Errorf("CreateOrder: payment failed, err: %s", err.Error())
 
-	// 7. update order status
+		orderItemIdsStr := utils.ConvertIntslice2String(orderItemIds)
+		_ = utils.SendMsg(ctx, "order_canceled", orderId, orderItemIdsStr)
+		return "", err
+	}
+
+	// 6.1 payment success: update order status
+	err = dao.GetOrderDao().UpdateStatusAndPayment(ctx, orderId, consts.PAYED, time.Now())
+	if err != nil {
+		log.Logger.Errorf("CreateOrder: update status failed, err %s", err.Error())
+		return "", err
+	}
+
+	go func() {
+		err = utils.SendMsg(ctx, "order_status_changed", orderId, "2")
+		if err != nil {
+			log.Logger.Errorf("send message failed, err %s", err)
+		}
+	}()
+
 	return orderId, nil
 }

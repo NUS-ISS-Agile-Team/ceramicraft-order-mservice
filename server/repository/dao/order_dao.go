@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
@@ -11,13 +12,13 @@ import (
 
 type OrderDao interface {
 	Create(ctx context.Context, o *model.Order) (orderNo string, err error)
-	UpdateStatus(ctx context.Context, orderNo string, status int) (err error)
+	UpdateStatusAndPayment(ctx context.Context, orderNo string, status int, payTime time.Time) error
 	GetByOrderNo(ctx context.Context, orderNo string) (o *model.Order, err error)
 	GetByOrderQuery(ctx context.Context, query OrderQuery) (oList []*model.Order, err error)
 }
 
 var (
-	orderOnce sync.Once
+	orderOnce            sync.Once
 	orderDaoImplInstance *OrderDaoImpl
 )
 
@@ -39,8 +40,14 @@ func (d *OrderDaoImpl) Create(ctx context.Context, o *model.Order) (orderNo stri
 	return o.OrderNo, result.Error
 }
 
-func (d *OrderDaoImpl) UpdateStatus(ctx context.Context, orderNo string, status int) (err error) {
-	return d.db.WithContext(ctx).Model(&model.Order{}).Where("order_no = ?", orderNo).Update("status", status).Error
+func (d *OrderDaoImpl) UpdateStatusAndPayment(ctx context.Context, orderNo string, status int, payTime time.Time) error {
+	return d.db.WithContext(ctx).
+		Model(&model.Order{}).
+		Where("order_no = ?", orderNo).
+		Updates(map[string]interface{}{
+			"status":   status,
+			"pay_time": payTime,
+		}).Error
 }
 
 func (d *OrderDaoImpl) GetByOrderNo(ctx context.Context, orderNo string) (o *model.Order, err error) {
@@ -61,4 +68,3 @@ func (d *OrderDaoImpl) GetByOrderQuery(ctx context.Context, query OrderQuery) (o
 	err = db.Find(&oList).Error
 	return
 }
-

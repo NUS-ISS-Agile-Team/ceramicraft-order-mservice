@@ -23,6 +23,8 @@ require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/NUS-ISS-Agile-Team/ceramicraft-commodity-mservice/client v0.0.0-20251005062820-4c14c1d9d018 // indirect
 	github.com/NUS-ISS-Agile-Team/ceramicraft-commodity-mservice/common v0.0.0-20251005054455-2b51b4350ad5 // indirect
+	github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/client v0.0.0-20251005130723-d33cc0ba0cdf // indirect
+	github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v1.0.5-0.20251006135536-e0bafdaafee0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect

@@ -22,6 +22,10 @@ commodityClient:
   host: "127.0.0.1" # ceramicraft-commodity-mservice 127.0.0.1
   port: 5001
 
+paymentClient:
+  hots: "127.0.0.1"
+  port: 5003
+
 kafka:
   host: "localhost"
   port: 9092

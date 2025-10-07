@@ -22,6 +22,10 @@ commodityClient:
   host: "ceramicraft-commodity-mservice"
   port: 5001
 
+paymentClient:
+  hots: "ceramicraft-payment-mservice"
+  port: 5001
+
 kafka:
-  host: "localhost"
+  host: "kafka-container"
   port: 9092

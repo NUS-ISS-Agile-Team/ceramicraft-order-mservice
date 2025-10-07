@@ -14,6 +14,7 @@ type Conf struct {
 	HttpConfig      *HttpConfig      `mapstructure:"http"`
 	MySQLConfig     *MySQL           `mapstructure:"mysql"`
 	CommodityClient *CommodityClient `mapstructure:"commodityClient"`
+	PaymentClient   *PaymentClient   `mapstruct:"paymentClient"`
 	KafkaConfig     *KafkaConfig     `mapstructure:"kafka"`
 }
 
@@ -47,6 +48,11 @@ type CommodityClient struct {
 	Port int    `mapstructure:"port"`
 }
 
+type PaymentClient struct {
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
+}
+
 type KafkaConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
@@ -57,10 +63,10 @@ var UseLocalConfig = false
 func Init() {
 	workDir, _ := os.Getwd()
 	if UseLocalConfig {
-        viper.SetConfigName("config-local")
-    } else {
-        viper.SetConfigName("config")
-    }
+		viper.SetConfigName("config-local")
+	} else {
+		viper.SetConfigName("config")
+	}
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(workDir + "/resources")
 	viper.AddConfigPath(workDir)
