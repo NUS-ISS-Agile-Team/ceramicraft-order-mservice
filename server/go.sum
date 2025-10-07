@@ -16,6 +16,8 @@ github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/common v0.0.0-202509281
 github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/common v0.0.0-20250928114520-6e4343bff960/go.mod h1:9uyHoT6pHxTcxi1LnNmZkBMvWqpvivoI5Kh/jQmj7Gs=
 github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/client v0.0.0-20251005130723-d33cc0ba0cdf h1:6GaPpz0ymiwho/9kOsc/+m0c/VoOx7mM8rfTd3+ZP0U=
 github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/client v0.0.0-20251005130723-d33cc0ba0cdf/go.mod h1:g8CSvJL1Nt1fEP1iLxIwSxyaa4LNCxihlv6fTiO376k=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/client v1.0.0 h1:K+mtaIFuTZaieKUWe52N4w3bA93u0UiQvAGtJrxnHZU=
+github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/client v1.0.0/go.mod h1:vSuF9VL/Ox5ipuacxmG6FaBjrkjnAX4oB+ejfmlkIHI=
 github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v0.0.0-20251005130221-f8a4ee56cb0c h1:+1jGJGzDBmqIhLNcx5dN1r2xYgpU9k5vvGN77Kv+EzA=
 github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v0.0.0-20251005130221-f8a4ee56cb0c/go.mod h1:pNMAqf0fw1LlXPeXdG2ZJn9kxihIjAYwXQ+pl+dJu/M=
 github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common v1.0.5-0.20251006135536-e0bafdaafee0 h1:KUTCSaL2bYeFO/eYyTciYw0/YAD0zhC6UCGVOXOcNis=
