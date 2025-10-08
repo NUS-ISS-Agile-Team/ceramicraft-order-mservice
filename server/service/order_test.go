@@ -26,6 +26,8 @@ func init() {
 	log.Logger = logger.Sugar()
 }
 
+const userIdKey = "userID"
+
 func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -38,7 +40,7 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), "userID", 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123)
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -154,7 +156,7 @@ func TestOrderServiceImpl_CreateOrder_GetProductListError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), "userID", 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123)
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -212,7 +214,7 @@ func TestOrderServiceImpl_CreateOrder_InsufficientStock(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data with high quantity
-	ctx := context.WithValue(context.Background(), "userID", 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123)
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -277,7 +279,7 @@ func TestOrderServiceImpl_CreateOrder_OrderDaoCreateError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), "userID", 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123)
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -348,7 +350,7 @@ func TestOrderServiceImpl_CreateOrder_OrderProductDaoCreateError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), "userID", 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123)
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -425,7 +427,7 @@ func TestOrderServiceImpl_CreateOrder_KafkaOrderCreatedError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), "userID", 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123)
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -508,7 +510,7 @@ func TestOrderServiceImpl_CreateOrder_PaymentFailed(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), "userID", 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123)
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
