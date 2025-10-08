@@ -1,98 +1,85 @@
+basePath: /order-ms/v1
 definitions:
-  data.BaseResponse:
+  api.Response:
     properties:
-      code:
-        type: integer
       data: {}
-      err_msg:
+      error:
+        type: string
+      msg:
+        type: string
+      status:
+        type: integer
+    type: object
+  types.OrderInfo:
+    properties:
+      order_item_list:
+        description: 订单商品列表
+        items:
+          $ref: '#/definitions/types.OrderItemInfo'
+        type: array
+      receiver_address:
+        description: 收货地址
+        type: string
+      receiver_country:
+        description: 收货人国家
+        type: string
+      receiver_first_name:
+        description: 收货人姓名
+        type: string
+      receiver_last_name:
+        description: 收货人姓名
+        type: string
+      receiver_phone:
+        description: 收货人电话
+        type: string
+      receiver_zip_code:
+        description: 收货人邮政编码
+        type: integer
+      remark:
+        description: 备注
         type: string
     type: object
-  data.ItemVO:
+  types.OrderItemInfo:
     properties:
-      id:
+      price:
         type: integer
-      name:
+      product_id:
+        type: integer
+      product_name:
         type: string
-    required:
-    - name
+      quantity:
+        type: integer
     type: object
 info:
   contact: {}
+  description: 订单微服务相关接口
+  title: 订单服务 API
+  version: "1.0"
 paths:
-  /template-ms/v1/{client}/items:
+  /customer/create:
     post:
       consumes:
       - application/json
-      description: Create an item record.
+      description: 创建一个新订单
       parameters:
-      - description: Item information
+      - description: 订单信息
         in: body
-        name: user
+        name: order
         required: true
         schema:
-          $ref: '#/definitions/data.ItemVO'
-      - description: Client identifier
-        enum:
-        - customer
-        - merchant
-        in: path
-        name: client
-        required: true
-        type: string
+          $ref: '#/definitions/types.OrderInfo'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/data.BaseResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/data.ItemVO'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            allOf:
-            - $ref: '#/definitions/data.BaseResponse'
-            - properties:
-                data:
-                  type: string
-              type: object
+            $ref: '#/definitions/api.Response'
         "500":
           description: Internal Server Error
           schema:
-            allOf:
-            - $ref: '#/definitions/data.BaseResponse'
-            - properties:
-                data:
-                  type: string
-              type: object
-      summary: Item Create
+            $ref: '#/definitions/api.Response'
+      summary: 创建订单
       tags:
-      - Item
-  /template-ms/v1/{client}/items/{item_id}:
-    get:
-      description: Get item information by item ID.
-      parameters:
-      - description: Client identifier
-        enum:
-        - customer
-        - merchant
-        in: path
-        name: client
-        required: true
-        type: string
-      - description: Item.ID
-        in: path
-        name: item_id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-      summary: Item Query with ID
-      tags:
-      - Item
+      - Order
 swagger: "2.0"

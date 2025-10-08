@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// mockgen -source=dao/order_dao.go -destination=dao/mocks/order_dao_mock.go -package=mocks
+// mockgen -source=dao/order_product_dao.go -destination=dao/mocks/order_product_dao_mock.go -package=mocks
+// mockgen -source=dao/order_log_dao.go -destination=dao/mocks/order_log_dao_mock.go -package=mocks
+
 var (
 	DB  *gorm.DB
 	err error
@@ -39,7 +43,9 @@ func Init() {
 		panic(err)
 	}
 	err = DB.AutoMigrate(
-		&model.Item{},
+		&model.Order{},
+		&model.OrderProduct{},
+		&model.OrderStatusLog{},
 	)
 	if err != nil {
 		panic(err)

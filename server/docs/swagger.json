@@ -1,12 +1,16 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "订单微服务相关接口",
+        "title": "订单服务 API",
+        "contact": {},
+        "version": "1.0"
     },
+    "basePath": "/order-ms/v1",
     "paths": {
-        "/template-ms/v1/{client}/items": {
+        "/customer/create": {
             "post": {
-                "description": "Create an item record.",
+                "description": "创建一个新订单",
                 "consumes": [
                     "application/json"
                 ],
@@ -14,148 +18,107 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Item"
+                    "Order"
                 ],
-                "summary": "Item Create",
+                "summary": "创建订单",
                 "parameters": [
                     {
-                        "description": "Item information",
-                        "name": "user",
+                        "description": "订单信息",
+                        "name": "order",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/data.ItemVO"
+                            "$ref": "#/definitions/types.OrderInfo"
                         }
-                    },
-                    {
-                        "enum": [
-                            "customer",
-                            "merchant"
-                        ],
-                        "type": "string",
-                        "description": "Client identifier",
-                        "name": "client",
-                        "in": "path",
-                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/data.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/data.ItemVO"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/data.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/api.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/data.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/api.Response"
                         }
-                    }
-                }
-            }
-        },
-        "/template-ms/v1/{client}/items/{item_id}": {
-            "get": {
-                "description": "Get item information by item ID.",
-                "tags": [
-                    "Item"
-                ],
-                "summary": "Item Query with ID",
-                "parameters": [
-                    {
-                        "enum": [
-                            "customer",
-                            "merchant"
-                        ],
-                        "type": "string",
-                        "description": "Client identifier",
-                        "name": "client",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Item.ID",
-                        "name": "item_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
                     }
                 }
             }
         }
     },
     "definitions": {
-        "data.BaseResponse": {
+        "api.Response": {
             "type": "object",
             "properties": {
-                "code": {
+                "data": {},
+                "error": {
+                    "type": "string"
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "types.OrderInfo": {
+            "type": "object",
+            "properties": {
+                "order_item_list": {
+                    "description": "订单商品列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.OrderItemInfo"
+                    }
+                },
+                "receiver_address": {
+                    "description": "收货地址",
+                    "type": "string"
+                },
+                "receiver_country": {
+                    "description": "收货人国家",
+                    "type": "string"
+                },
+                "receiver_first_name": {
+                    "description": "收货人姓名",
+                    "type": "string"
+                },
+                "receiver_last_name": {
+                    "description": "收货人姓名",
+                    "type": "string"
+                },
+                "receiver_phone": {
+                    "description": "收货人电话",
+                    "type": "string"
+                },
+                "receiver_zip_code": {
+                    "description": "收货人邮政编码",
                     "type": "integer"
                 },
-                "data": {},
-                "err_msg": {
+                "remark": {
+                    "description": "备注",
                     "type": "string"
                 }
             }
         },
-        "data.ItemVO": {
+        "types.OrderItemInfo": {
             "type": "object",
-            "required": [
-                "name"
-            ],
             "properties": {
-                "id": {
+                "price": {
                     "type": "integer"
                 },
-                "name": {
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
                     "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
                 }
             }
         }
