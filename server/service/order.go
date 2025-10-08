@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -121,8 +122,13 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		}
 	}
 
+	orderMsg, err := utils.JSONEncode(orderInfo)
+	if err != nil {
+		log.Logger.Errorf("CreateOrder: json encode failed, err %s", err.Error())
+		return "", err
+	}
 	// 4. message queue: send msg -- order ID
-	err = utils.SendMsg(ctx, "order_created", orderId, strconv.Itoa(orderInfo.UserID))
+	err = utils.SendMsg(ctx, "order_created", orderId, orderMsg)
 	if err != nil {
 		log.Logger.Errorf("CreateOrder: send message failed, err %s", err.Error())
 		return "", err
@@ -160,8 +166,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		}
 		log.Logger.Errorf("CreateOrder: payment failed, err: %s", err.Error())
 
-		orderItemIdsStr := utils.ConvertIntslice2String(orderItemIds)
-		_ = utils.SendMsg(ctx, "order_canceled", orderId, orderItemIdsStr)
+		_ = utils.SendMsg(ctx, "order_canceled", orderId, orderMsg)
 		return "", err
 	}
 
