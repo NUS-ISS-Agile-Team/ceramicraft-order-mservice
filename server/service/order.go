@@ -36,6 +36,7 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 }
 
 func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.OrderInfo) (orderNo string, err error) {
+	userId := ctx.Value("userID").(int)
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
@@ -72,8 +73,8 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		itemTotalAmount += (orderItem.Price * orderItem.Quantity)
 	}
 
-	shippingFee := 1500
-	tax := itemTotalAmount * 9 / 100
+	shippingFee := calculateShippingFee(itemTotalAmount)
+	tax := calculateTax(itemTotalAmount)
 
 	// 2. local func: gen order ID
 	orderId := utils.GenerateOrderID()
@@ -82,7 +83,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	// 3.1 save order Info
 	_, err = dao.GetOrderDao().Create(ctx, &model.Order{
 		OrderNo:           orderId,
-		UserID:            orderInfo.UserID,
+		UserID:            userId,
 		Status:            consts.CREATED,
 		TotalAmount:       itemTotalAmount + shippingFee + tax,
 		CreateTime:        time.Now(),
@@ -120,9 +121,9 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		}
 	}
 
-	orderMsg, err := utils.JSONEncode(orderInfo)
+	orderMsg, err := getOrderMsg(orderId, orderInfo, userId)
 	if err != nil {
-		log.Logger.Errorf("CreateOrder: json encode failed, err %s", err.Error())
+		log.Logger.Errorf("getOrderMsg: json encode failed, err %s", err.Error())
 		return "", err
 	}
 	// 4. message queue: send msg -- order ID
@@ -151,21 +152,23 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	// TODO
 	payClient := clients.GetPaymentClient()
 	payResp, err := payClient.PayOrder(ctx, &paymentpb.PayOrderRequest{
-		UserId: int32(orderInfo.UserID),
+		UserId: int32(userId),
 		Amount: int32(itemTotalAmount + shippingFee + tax),
 		BizId:  orderId,
 	})
 
 	// 6.2 payment failed
 	if err != nil || payResp.Code != 0 {
-		if err == nil {
-			errMsg := paymentpb.RespCode_name[payResp.Code]
-			err = errors.New(errMsg)
-		}
-		log.Logger.Errorf("CreateOrder: payment failed, err: %s", err.Error())
-
 		_ = utils.SendMsg(ctx, "order_canceled", orderId, orderMsg)
-		return "", err
+		if err != nil {
+			log.Logger.Errorf("CreateOrder: payment failed, err: %s", err.Error())
+			return "", err
+		} else {
+			errMsg := payResp.ErrorMsg
+			rpcErr := errors.New(*errMsg)
+			log.Logger.Errorf("CreateOrder: payment failed, err: %s", rpcErr.Error())
+			return "", rpcErr
+		}
 	}
 
 	// 6.1 payment success: update order status
@@ -183,4 +186,35 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	}()
 
 	return orderId, nil
+}
+
+func getOrderMsg(orderId string, orderInfo types.OrderInfo, userId int) (msg string, err error) {
+	orderMessage := types.OrderMessage{
+		UserID:            userId,
+		OrderID:           orderId,
+		ReceiverFirstName: orderInfo.ReceiverFirstName,
+		ReceiverLastName:  orderInfo.ReceiverLastName,
+		ReceiverPhone:     orderInfo.ReceiverPhone,
+		ReceiverAddress:   orderInfo.ReceiverAddress,
+		ReceiverCountry:   orderInfo.ReceiverCountry,
+		ReceiverZipCode:   orderInfo.ReceiverZipCode,
+		Remark:            orderInfo.Remark,
+		OrderItemList:     orderInfo.OrderItemList,
+	}
+	orderMsgJson, err := utils.JSONEncode(orderMessage)
+	return orderMsgJson, err
+}
+
+func calculateShippingFee(total int) int {
+	const ShippingFee = 800
+	const TotalThresh = 30000
+	if total >= TotalThresh {
+		return 0
+	}
+	return ShippingFee
+}
+
+// tax = total * 9%
+func calculateTax(total int) int {
+	return total * 9 / 100
 }

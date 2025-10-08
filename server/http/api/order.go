@@ -31,6 +31,5 @@ func CreateOrder(ctx *gin.Context) {
 		return
 	}
 
-    // 假设创建成功，返回订单号
     ctx.JSON(http.StatusOK, RespSuccess(ctx, orderNo))
 }
