@@ -10,8 +10,16 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+type Writer interface {
+	SendMsg(ctx context.Context, topic, key, value string) error
+}
+
+type MyWriter struct {
+	kafkaWriter *kafka.Writer
+}
+
 var (
-	writer     *kafka.Writer
+	writer     *MyWriter
 	writerOnce sync.Once
 )
 
@@ -26,26 +34,29 @@ func CloseKafka() {
 func initKafkaWriter() {
 	writerOnce.Do(func() {
 		brokerAddr := fmt.Sprintf("%s:%d", config.Config.KafkaConfig.Host, config.Config.KafkaConfig.Port)
-		writer = &kafka.Writer{
+		kafkaWriter := &kafka.Writer{
 			Addr:                   kafka.TCP(brokerAddr),
 			Balancer:               &kafka.LeastBytes{},
 			RequiredAcks:           kafka.RequireAll,
 			Async:                  false,
 			AllowAutoTopicCreation: true,
 		}
+		writer = &MyWriter{
+			kafkaWriter: kafkaWriter,
+		}
 	})
 }
 
 func closeKafkaWriter() {
-	if writer != nil {
-		if err := writer.Close(); err != nil {
+	if writer != nil && writer.kafkaWriter != nil {
+		if err := writer.kafkaWriter.Close(); err != nil {
 			log.Logger.Errorf("CloseKafkaWriter: failed to close writer, err %s", err.Error())
 		}
 	}
 }
 
-func SendMsg(ctx context.Context, topic, key, value string) error {
-	err := writer.WriteMessages(ctx, kafka.Message{
+func (myWriter *MyWriter) SendMsg(ctx context.Context, topic, key, value string) error {
+	err := myWriter.kafkaWriter.WriteMessages(ctx, kafka.Message{
 		Topic: topic, // 这里可以覆盖默认 topic
 		Key:   []byte(key),
 		Value: []byte(value),
@@ -55,4 +66,8 @@ func SendMsg(ctx context.Context, topic, key, value string) error {
 		return err
 	}
 	return nil
+}
+
+func GetWriter() *MyWriter {
+	return writer
 }

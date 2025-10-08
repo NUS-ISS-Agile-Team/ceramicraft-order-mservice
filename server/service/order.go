@@ -23,15 +23,21 @@ type OrderService interface {
 }
 
 type OrderServiceImpl struct {
-	lock            sync.Mutex
-	orderDao        dao.OrderDao
-	orderProductDao dao.OrderProductDao
+	lock                 sync.Mutex
+	orderDao             dao.OrderDao
+	orderProductDao      dao.OrderProductDao
+	productServiceClient productpb.ProductServiceClient
+	paymentServiceClient paymentpb.PaymentServiceClient
+	messageWriter        utils.Writer
 }
 
 func GetOrderServiceInstance() *OrderServiceImpl {
 	return &OrderServiceImpl{
-		orderDao:        dao.GetOrderDao(),
-		orderProductDao: dao.GetOrderProductDao(),
+		orderDao:             dao.GetOrderDao(),
+		orderProductDao:      dao.GetOrderProductDao(),
+		productServiceClient: clients.GetProductClient(),
+		paymentServiceClient: clients.GetPaymentClient(),
+		messageWriter:        utils.GetWriter(),
 	}
 }
 
@@ -40,17 +46,15 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
-	psClient := clients.GetProductClient()
-
 	orderItemIds := make([]int64, len(orderInfo.OrderItemList))
 	for idx, item := range orderInfo.OrderItemList {
 		orderItemIds[idx] = int64(item.ProductID)
 	}
 
-	log.Logger.Infof("CreateOrder: orderItemIds = %v", orderItemIds)
+	// log.Logger.Infof("CreateOrder: orderItemIds = %v", orderItemIds)
 
 	// 1. rpc: call product service and check if all the related product's stock is enough
-	productList, err := psClient.GetProductList(ctx, &productpb.GetProductListRequest{
+	productList, err := o.productServiceClient.GetProductList(ctx, &productpb.GetProductListRequest{
 		Ids: orderItemIds,
 	})
 	if err != nil {
@@ -73,15 +77,15 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		itemTotalAmount += (orderItem.Price * orderItem.Quantity)
 	}
 
-	shippingFee := calculateShippingFee(itemTotalAmount)
-	tax := calculateTax(itemTotalAmount)
+	shippingFee := CalculateShippingFee(itemTotalAmount)
+	tax := CalculateTax(itemTotalAmount)
 
 	// 2. local func: gen order ID
 	orderId := utils.GenerateOrderID()
 
 	// 3. save order Info to database
 	// 3.1 save order Info
-	_, err = dao.GetOrderDao().Create(ctx, &model.Order{
+	_, err = o.orderDao.Create(ctx, &model.Order{
 		OrderNo:           orderId,
 		UserID:            userId,
 		Status:            consts.CREATED,
@@ -105,7 +109,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 
 	// 3.2 save order items
 	for _, orderItem := range orderInfo.OrderItemList {
-		_, err := dao.GetOrderProductDao().Create(ctx, &model.OrderProduct{
+		_, err := o.orderProductDao.Create(ctx, &model.OrderProduct{
 			OrderNo:     orderId,
 			ProductID:   orderItem.ProductID,
 			ProductName: orderItem.ProductName,
@@ -127,14 +131,14 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 	// 4. message queue: send msg -- order ID
-	err = utils.SendMsg(ctx, "order_created", orderId, orderMsg)
+	err = o.messageWriter.SendMsg(ctx, "order_created", orderId, orderMsg)
 	if err != nil {
 		log.Logger.Errorf("CreateOrder: send message failed, err %s", err.Error())
 		return "", err
 	}
 
 	go func() {
-		err = utils.SendMsg(ctx, "order_status_changed", orderId, "1")
+		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, "1")
 		if err != nil {
 			log.Logger.Errorf("send message failed, err %s", err)
 		}
@@ -142,7 +146,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 
 	// 5. rpc: call product service and decrease stock
 	for _, orderItem := range orderInfo.OrderItemList {
-		_, _ = psClient.UpdateStockWithCAS(ctx, &productpb.UpdateStockWithCASRequest{
+		_, _ = o.productServiceClient.UpdateStockWithCAS(ctx, &productpb.UpdateStockWithCASRequest{
 			Id:   int64(orderItem.ProductID),
 			Deta: int64(-1 * orderItem.Quantity),
 		})
@@ -150,8 +154,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 
 	// 6. rpc: call payment service and pay
 	// TODO
-	payClient := clients.GetPaymentClient()
-	payResp, err := payClient.PayOrder(ctx, &paymentpb.PayOrderRequest{
+	payResp, err := o.paymentServiceClient.PayOrder(ctx, &paymentpb.PayOrderRequest{
 		UserId: int32(userId),
 		Amount: int32(itemTotalAmount + shippingFee + tax),
 		BizId:  orderId,
@@ -159,7 +162,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 
 	// 6.2 payment failed
 	if err != nil || payResp.Code != 0 {
-		_ = utils.SendMsg(ctx, "order_canceled", orderId, orderMsg)
+		_ = o.messageWriter.SendMsg(ctx, "order_canceled", orderId, orderMsg)
 		if err != nil {
 			log.Logger.Errorf("CreateOrder: payment failed, err: %s", err.Error())
 			return "", err
@@ -172,14 +175,14 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	}
 
 	// 6.1 payment success: update order status
-	err = dao.GetOrderDao().UpdateStatusAndPayment(ctx, orderId, consts.PAYED, time.Now())
+	err = o.orderDao.UpdateStatusAndPayment(ctx, orderId, consts.PAYED, time.Now())
 	if err != nil {
 		log.Logger.Errorf("CreateOrder: update status failed, err %s", err.Error())
 		return "", err
 	}
 
 	go func() {
-		err = utils.SendMsg(ctx, "order_status_changed", orderId, "2")
+		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, "2")
 		if err != nil {
 			log.Logger.Errorf("send message failed, err %s", err)
 		}
@@ -205,7 +208,7 @@ func getOrderMsg(orderId string, orderInfo types.OrderInfo, userId int) (msg str
 	return orderMsgJson, err
 }
 
-func calculateShippingFee(total int) int {
+func CalculateShippingFee(total int) int {
 	const ShippingFee = 800
 	const TotalThresh = 30000
 	if total >= TotalThresh {
@@ -215,6 +218,6 @@ func calculateShippingFee(total int) int {
 }
 
 // tax = total * 9%
-func calculateTax(total int) int {
+func CalculateTax(total int) int {
 	return total * 9 / 100
 }
