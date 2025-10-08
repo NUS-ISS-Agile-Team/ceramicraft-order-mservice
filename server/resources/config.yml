@@ -23,7 +23,7 @@ commodityClient:
   port: 5001
 
 paymentClient:
-  hots: "ceramicraft-payment-mservice"
+  host: "ceramicraft-payment-mservice"
   port: 5001
 
 kafka:
