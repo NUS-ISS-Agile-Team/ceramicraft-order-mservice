@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,6 +33,7 @@ func main() {
 	clients.InitAllClients(config.Config)
 	go grpc.Init(sigCh)
 	go http.Init(sigCh)
+	go utils.GetReader().ConsumeMessage(context.Background())
 	// listen terminage signal
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigCh // Block until signal is received

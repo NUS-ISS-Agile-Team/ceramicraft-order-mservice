@@ -138,7 +138,11 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	}
 
 	go func() {
-		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, "1")
+		oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created", 1)
+		if err != nil {
+			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+		}
+		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
 		if err != nil {
 			log.Logger.Errorf("send message failed, err %s", err)
 		}
@@ -182,7 +186,11 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	}
 
 	go func() {
-		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, "2")
+		oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created --> Paid", 2)
+		if err != nil {
+			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+		}
+		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
 		if err != nil {
 			log.Logger.Errorf("send message failed, err %s", err)
 		}
@@ -206,6 +214,16 @@ func getOrderMsg(orderId string, orderInfo types.OrderInfo, userId int) (msg str
 	}
 	orderMsgJson, err := utils.JSONEncode(orderMessage)
 	return orderMsgJson, err
+}
+
+func getOrderStatusChangedMsg(orderNo string, userId int, remark string, curStatus int) (msg string, err error) {
+	rawMsg := types.OrderStatusChangedMessage{
+		OrderNo: orderNo,
+		UserId: userId,
+		Remark: remark,
+		CurrentStatus: curStatus,
+	}
+	return utils.JSONEncode(rawMsg)
 }
 
 func CalculateShippingFee(total int) int {

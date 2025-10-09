@@ -31,3 +31,10 @@ type OrderMessage struct {
 	Remark            string           `json:"remark"`              // 备注
 	OrderItemList     []*OrderItemInfo `json:"order_item_list"`
 }
+
+type OrderStatusChangedMessage struct {
+	OrderNo       string `json:"order_no"`
+	UserId        int    `json:"user_id"`
+	CurrentStatus int    `json:"current_status"`
+	Remark        string `json:"remark"`
+}
