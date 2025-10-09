@@ -11,11 +11,11 @@ import (
 
 type OrderProductDao interface {
 	Create(ctx context.Context, orderProduct *model.OrderProduct) (id int, err error)
-	GetByOrderNo(ctx context.Context, orderNo int) (orderProductList []*model.OrderProduct, err error)
+	GetByOrderNo(ctx context.Context, orderNo string) (orderProductList []*model.OrderProduct, err error)
 }
 
 var (
-	orderProductOnce sync.Once
+	orderProductOnce            sync.Once
 	orderProductDaoImplInstance *OrderProductDaoImpl
 )
 
@@ -37,7 +37,7 @@ func (d *OrderProductDaoImpl) Create(ctx context.Context, orderProduct *model.Or
 	return orderProduct.ID, result.Error
 }
 
-func (d *OrderProductDaoImpl) GetByOrderNo(ctx context.Context, orderNo int) (orderProductList []*model.OrderProduct, err error) {
+func (d *OrderProductDaoImpl) GetByOrderNo(ctx context.Context, orderNo string) (orderProductList []*model.OrderProduct, err error) {
 	err = d.db.WithContext(ctx).Where("order_no = ?", orderNo).Find(&orderProductList).Error
 	return
 }

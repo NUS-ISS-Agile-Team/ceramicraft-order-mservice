@@ -58,13 +58,37 @@ func (d *OrderDaoImpl) GetByOrderNo(ctx context.Context, orderNo string) (o *mod
 
 func (d *OrderDaoImpl) GetByOrderQuery(ctx context.Context, query OrderQuery) (oList []*model.Order, err error) {
 	db := d.db.WithContext(ctx).Model(&model.Order{})
-	// 这里可以根据 query 字段动态拼接条件
+
+	// 根据 query 字段动态拼接条件
 	if query.OrderStatus != 0 {
 		db = db.Where("status = ?", query.OrderStatus)
 	}
 	if query.UserID != 0 {
 		db = db.Where("user_id = ?", query.UserID)
 	}
+	if query.OrderNo != "" {
+		db = db.Where("order_no LIKE ?", "%"+query.OrderNo+"%")
+	}
+
+	// 根据创建时间范围筛选
+	if !query.StartTime.IsZero() {
+		db = db.Where("create_time >= ?", query.StartTime)
+	}
+	if !query.EndTime.IsZero() {
+		db = db.Where("create_time <= ?", query.EndTime)
+	}
+
+	// 按创建时间倒序排列
+	db = db.Order("create_time DESC")
+
+	// 分页支持
+	if query.Limit > 0 {
+		db = db.Limit(query.Limit)
+	}
+	if query.Offset > 0 {
+		db = db.Offset(query.Offset)
+	}
+
 	err = db.Find(&oList).Error
 	return
 }

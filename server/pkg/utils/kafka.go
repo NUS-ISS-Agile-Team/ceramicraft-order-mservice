@@ -90,6 +90,7 @@ func initKafkaReader() {
 	readerOnce.Do(func() {
 		kafkaReader := kafka.NewReader(kafka.ReaderConfig{
 			Brokers:   []string{brokerAddr},
+			GroupID:   "consume_group_order_status_change",
 			Topic:     "order_status_changed",
 			Partition: 0,
 			MaxBytes:  10e6,
@@ -128,11 +129,11 @@ func (mc *MyConsumer) ConsumeMessage(ctx context.Context) {
 			continue
 		}
 		_, err = mc.orderLogDao.Create(ctx, &model.OrderStatusLog{
-			OrderNo: msg.OrderNo,
-			UserID: msg.UserId,
+			OrderNo:       msg.OrderNo,
+			UserID:        msg.UserId,
 			CurrentStatus: msg.CurrentStatus,
-			Remark: msg.Remark,
-			CreateTime: time.Now(),
+			Remark:        msg.Remark,
+			CreateTime:    time.Now(),
 		})
 		if err != nil {
 			log.Logger.Errorf("create order log failed, err = %s", err.Error())
