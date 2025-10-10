@@ -934,13 +934,52 @@ func TestOrderServiceImpl_CustomerGetOrderDetail_WrongUser(t *testing.T) {
 
 	ctx := context.Background()
 	orderNo := "order1"
-	userID := 123
+	orderOwnerID := 123
 	wrongUserID := 456
 	order := &model.Order{
-		OrderNo: orderNo,
-		UserID:  userID, // 订单属于用户123
+		OrderNo:           orderNo,
+		UserID:            orderOwnerID, // 订单属于用户123
+		Status:            consts.CREATED,
+		TotalAmount:       100,
+		PayAmount:         100,
+		ShippingFee:       10,
+		Tax:               5,
+		ReceiverFirstName: "A",
+		ReceiverLastName:  "B",
+		ReceiverPhone:     "123",
+		ReceiverAddress:   "addr",
+		ReceiverCountry:   "CN",
+		ReceiverZipCode:   10000,
+		Remark:            "remark",
+		LogisticsNo:       "LN123",
+		CreateTime:        time.Now(),
+		UpdateTime:        time.Now(),
 	}
+	products := []*model.OrderProduct{
+		{
+			ID:          1,
+			ProductID:   2,
+			ProductName: "P1",
+			Price:       10,
+			Quantity:    1,
+			TotalPrice:  10,
+			CreateTime:  time.Now(),
+			UpdateTime:  time.Now(),
+		},
+	}
+	logs := []*model.OrderStatusLog{
+		{
+			ID:            1,
+			CurrentStatus: consts.CREATED,
+			Remark:        "created",
+			CreateTime:    time.Now(),
+		},
+	}
+
+	// Mock完整的GetOrderDetail调用链
 	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(order, nil)
+	mockOrderProductDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(products, nil)
+	mockOrderLogDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(logs, nil)
 
 	service := &OrderServiceImpl{
 		orderDao:        mockOrderDao,
@@ -948,7 +987,9 @@ func TestOrderServiceImpl_CustomerGetOrderDetail_WrongUser(t *testing.T) {
 		orderLogDao:     mockOrderLogDao,
 		syncMode:        true,
 	}
-	detail, err := service.CustomerGetOrderDetail(ctx, orderNo, wrongUserID) // 但用户456尝试访问
+
+	// 用户456尝试访问用户123的订单
+	detail, err := service.CustomerGetOrderDetail(ctx, orderNo, wrongUserID)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
