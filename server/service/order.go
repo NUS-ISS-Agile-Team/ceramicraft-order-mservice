@@ -22,6 +22,7 @@ type OrderService interface {
 	CreateOrder(ctx context.Context, orderInfo types.OrderInfo) (orderNo string, err error)
 	ListOrders(ctx context.Context, req types.ListOrderRequest) (resp *types.ListOrderResponse, err error)
 	GetOrderDetail(ctx context.Context, orderNo string) (detail *types.OrderDetail, err error)
+	CustomerGetOrderDetail(ctx context.Context, orderNo string, userID int) (detail *types.OrderDetail, err error)
 }
 
 type OrderServiceImpl struct {
@@ -415,4 +416,18 @@ func getOrderStatusName(status int) string {
 	default:
 		return "未知状态"
 	}
+}
+
+func (o *OrderServiceImpl) CustomerGetOrderDetail(ctx context.Context, orderNo string, userId int) (detail *types.OrderDetail, err error) {
+	orderInfo, err := o.GetOrderDetail(ctx, orderNo)
+	if err != nil {
+		log.Logger.Errorf("CustomerGetOrderDetail: get order detail failed, err %s", err.Error())
+		return nil, err
+	}
+	if orderInfo.UserID != userId {
+		wrongUserErr := errors.New("Invalid user ID")
+		log.Logger.Errorf("CustomerGetOrderDetail: Invalid userID, err %s", wrongUserErr.Error())
+		return nil, wrongUserErr
+	}
+	return orderInfo, nil
 }

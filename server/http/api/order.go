@@ -57,9 +57,6 @@ func ListOrders(ctx *gin.Context) {
 	if req.Limit <= 0 {
 		req.Limit = 20 // 默认每页20条
 	}
-	if req.Limit == 0 {
-		req.Limit = 10
-	}
 	if req.Limit > 100 {
 		req.Limit = 100 // 最大每页100条
 	}
@@ -94,11 +91,78 @@ func GetOrderDetail(ctx *gin.Context) {
 
 	detail, err := service.GetOrderServiceInstance().GetOrderDetail(ctx, orderNo)
 	if err != nil {
-		// 可以根据具体错误类型返回不同的状态码
-		if err.Error() == "record not found" {
-			ctx.JSON(http.StatusNotFound, RespError(ctx, errors.New("订单不存在")))
-			return
-		}
+		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, RespSuccess(ctx, detail))
+}
+
+// CustomerListOrders godoc
+// @Summary 用户侧查询订单列表
+// @Description 根据userID查询订单列表，支持分页，支持根据时间筛选
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param request body types.CustomerListOrderRequest true "查询条件"
+// @Success 200 {object} Response{data=types.ListOrderResponse}
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /customer/list [post]
+func CustomerListOrders(ctx *gin.Context) {
+	var req types.CustomerListOrderRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, err))
+		return
+	}
+
+	// 设置默认分页参数
+	if req.Limit <= 0 {
+		req.Limit = 20 // 默认每页20条
+	}
+	if req.Limit > 100 {
+		req.Limit = 100 // 最大每页100条
+	}
+
+	userID := ctx.Value("userID").(int)
+	resp, err := service.GetOrderServiceInstance().ListOrders(ctx, types.ListOrderRequest{
+		UserID:    userID,
+		StartTime: req.StartTime,
+		EndTime:   req.EndTime,
+		Limit:     req.Limit,
+		Offset:    req.Offset,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, RespSuccess(ctx, resp))
+}
+
+
+// CustomerGetOrderDetail godoc
+// @Summary 用户侧查询订单详情
+// @Description 根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param order_no path string true "订单号"
+// @Success 200 {object} Response{data=types.OrderDetail}
+// @Failure 400 {object} Response
+// @Failure 404 {object} Response
+// @Failure 500 {object} Response
+// @Router /customer/detail/{order_no} [get]
+func CustomerGetOrderDetail(ctx *gin.Context) {
+	orderNo := ctx.Param("order_no")
+	if orderNo == "" {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, errors.New("订单号不能为空")))
+		return
+	}
+
+	userID := ctx.Value("userID").(int)
+	detail, err := service.GetOrderServiceInstance().CustomerGetOrderDetail(ctx, orderNo, userID)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
 		return
 	}

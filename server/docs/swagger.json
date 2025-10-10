@@ -47,6 +47,246 @@
                     }
                 }
             }
+        },
+        "/customer/detail/{order_no}": {
+            "get": {
+                "description": "根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "用户侧查询订单详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "订单号",
+                        "name": "order_no",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.OrderDetail"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/customer/list": {
+            "post": {
+                "description": "根据userID查询订单列表，支持分页，支持根据时间筛选",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "用户侧查询订单列表",
+                "parameters": [
+                    {
+                        "description": "查询条件",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.CustomerListOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.ListOrderResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/detail/{order_no}": {
+            "get": {
+                "description": "根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "查询订单详情",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "订单号",
+                        "name": "order_no",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.OrderDetail"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/list": {
+            "post": {
+                "description": "根据条件查询订单列表，支持分页",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "查询订单列表",
+                "parameters": [
+                    {
+                        "description": "查询条件",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.ListOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.ListOrderResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -61,6 +301,177 @@
                     "type": "string"
                 },
                 "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "types.CustomerListOrderRequest": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "description": "创建时间结束范围",
+                    "type": "string"
+                },
+                "limit": {
+                    "description": "分页限制",
+                    "type": "integer"
+                },
+                "offset": {
+                    "description": "分页偏移",
+                    "type": "integer"
+                },
+                "start_time": {
+                    "description": "创建时间开始范围",
+                    "type": "string"
+                }
+            }
+        },
+        "types.ListOrderRequest": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "description": "创建时间结束范围",
+                    "type": "string"
+                },
+                "limit": {
+                    "description": "分页限制",
+                    "type": "integer"
+                },
+                "offset": {
+                    "description": "分页偏移",
+                    "type": "integer"
+                },
+                "order_no": {
+                    "description": "订单号筛选",
+                    "type": "string"
+                },
+                "order_status": {
+                    "description": "订单状态筛选",
+                    "type": "integer"
+                },
+                "start_time": {
+                    "description": "创建时间开始范围",
+                    "type": "string"
+                },
+                "user_id": {
+                    "description": "用户ID筛选",
+                    "type": "integer"
+                }
+            }
+        },
+        "types.ListOrderResponse": {
+            "type": "object",
+            "properties": {
+                "orders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.OrderInfoInList"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "types.OrderDetail": {
+            "type": "object",
+            "properties": {
+                "confirm_time": {
+                    "description": "收货确认时间",
+                    "type": "string"
+                },
+                "create_time": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "delivery_time": {
+                    "description": "发货时间",
+                    "type": "string"
+                },
+                "logistics_no": {
+                    "description": "物流单号",
+                    "type": "string"
+                },
+                "order_items": {
+                    "description": "订单商品列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.OrderItemDetail"
+                    }
+                },
+                "order_no": {
+                    "description": "基本订单信息",
+                    "type": "string"
+                },
+                "pay_amount": {
+                    "description": "实际支付金额",
+                    "type": "integer"
+                },
+                "pay_time": {
+                    "description": "支付时间",
+                    "type": "string"
+                },
+                "receiver_address": {
+                    "description": "收货地址",
+                    "type": "string"
+                },
+                "receiver_country": {
+                    "description": "收货人国家",
+                    "type": "string"
+                },
+                "receiver_first_name": {
+                    "description": "收货信息",
+                    "type": "string"
+                },
+                "receiver_last_name": {
+                    "description": "收货人姓名",
+                    "type": "string"
+                },
+                "receiver_phone": {
+                    "description": "收货人电话",
+                    "type": "string"
+                },
+                "receiver_zip_code": {
+                    "description": "收货人邮政编码",
+                    "type": "integer"
+                },
+                "remark": {
+                    "description": "其他信息",
+                    "type": "string"
+                },
+                "shipping_fee": {
+                    "description": "运费",
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "订单状态",
+                    "type": "integer"
+                },
+                "status_logs": {
+                    "description": "订单状态变更日志",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/types.OrderStatusLogDetail"
+                    }
+                },
+                "status_name": {
+                    "description": "订单状态名称",
+                    "type": "string"
+                },
+                "tax": {
+                    "description": "税费",
+                    "type": "integer"
+                },
+                "total_amount": {
+                    "description": "总金额",
+                    "type": "integer"
+                },
+                "update_time": {
+                    "description": "更新时间",
+                    "type": "string"
+                },
+                "user_id": {
+                    "description": "下单用户",
                     "type": "integer"
                 }
             }
@@ -105,6 +516,72 @@
                 }
             }
         },
+        "types.OrderInfoInList": {
+            "type": "object",
+            "properties": {
+                "create_time": {
+                    "type": "string"
+                },
+                "order_no": {
+                    "type": "string"
+                },
+                "receiver_first_name": {
+                    "description": "收货人姓名",
+                    "type": "string"
+                },
+                "receiver_last_name": {
+                    "description": "收货人姓名",
+                    "type": "string"
+                },
+                "receiver_phone": {
+                    "description": "收货人电话",
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "total_amount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "types.OrderItemDetail": {
+            "type": "object",
+            "properties": {
+                "create_time": {
+                    "description": "创建时间",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "订单商品ID",
+                    "type": "integer"
+                },
+                "price": {
+                    "description": "商品单价",
+                    "type": "integer"
+                },
+                "product_id": {
+                    "description": "商品ID",
+                    "type": "integer"
+                },
+                "product_name": {
+                    "description": "商品名称",
+                    "type": "string"
+                },
+                "quantity": {
+                    "description": "商品数量",
+                    "type": "integer"
+                },
+                "total_price": {
+                    "description": "商品总价",
+                    "type": "integer"
+                },
+                "update_time": {
+                    "description": "更新时间",
+                    "type": "string"
+                }
+            }
+        },
         "types.OrderItemInfo": {
             "type": "object",
             "properties": {
@@ -119,6 +596,31 @@
                 },
                 "quantity": {
                     "type": "integer"
+                }
+            }
+        },
+        "types.OrderStatusLogDetail": {
+            "type": "object",
+            "properties": {
+                "create_time": {
+                    "description": "变更时间",
+                    "type": "string"
+                },
+                "current_status": {
+                    "description": "当前状态",
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "日志ID",
+                    "type": "integer"
+                },
+                "remark": {
+                    "description": "备注",
+                    "type": "string"
+                },
+                "status_name": {
+                    "description": "状态名称",
+                    "type": "string"
                 }
             }
         }
