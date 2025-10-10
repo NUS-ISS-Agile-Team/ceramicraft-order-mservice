@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/consts"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/types"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/service"
 	"github.com/gin-gonic/gin"
@@ -140,7 +141,6 @@ func CustomerListOrders(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, RespSuccess(ctx, resp))
 }
 
-
 // CustomerGetOrderDetail godoc
 // @Summary 用户侧查询订单详情
 // @Description 根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志
@@ -168,4 +168,75 @@ func CustomerGetOrderDetail(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, RespSuccess(ctx, detail))
+}
+
+// ShipOrder godoc
+// @Summary 商家发货
+// @Description 商家标记订单为已发货状态，并添加物流单号
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param request body types.ShipOrderRequest true "发货信息"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /merchant/ship [post]
+func ShipOrder(ctx *gin.Context) {
+	var req types.ShipOrderRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, err))
+		return
+	}
+
+	if req.OrderNo == "" {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, errors.New("订单号不能为空")))
+		return
+	}
+
+	if req.TrackingNo == "" {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, errors.New("物流单号不能为空")))
+		return
+	}
+
+	// 调用 service 层更新订单状态为已发货
+	err := service.GetOrderServiceInstance().UpdateOrderStatus(ctx, req.OrderNo, consts.SHIPPED, req.TrackingNo) // 3 表示 SHIPPED
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, RespSuccess(ctx, "订单发货成功"))
+}
+
+// ConfirmOrder godoc
+// @Summary 用户确认收货
+// @Description 用户确认收到商品，订单状态变更为已收货
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Param request body types.ConfirmOrderRequest true "确认收货信息"
+// @Success 200 {object} Response
+// @Failure 400 {object} Response
+// @Failure 500 {object} Response
+// @Router /customer/confirm [post]
+func ConfirmOrder(ctx *gin.Context) {
+	var req types.ConfirmOrderRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, err))
+		return
+	}
+
+	if req.OrderNo == "" {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, errors.New("订单号不能为空")))
+		return
+	}
+
+	// 调用 service 层更新订单状态为已收货
+	err := service.GetOrderServiceInstance().UpdateOrderStatus(ctx, req.OrderNo, consts.DELIVERED, "")
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, RespSuccess(ctx, "确认收货成功"))
 }
