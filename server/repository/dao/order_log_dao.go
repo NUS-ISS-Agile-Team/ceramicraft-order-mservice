@@ -11,7 +11,7 @@ import (
 
 type OrderLogDao interface {
 	Create(ctx context.Context, orderLog *model.OrderStatusLog) (id int, err error)
-	GetByOrderNo(ctx context.Context, orderNo int) (orderLogList []*model.OrderStatusLog, err error)
+	GetByOrderNo(ctx context.Context, orderNo string) (orderLogList []*model.OrderStatusLog, err error)
 }
 
 var (
@@ -37,7 +37,7 @@ func (d *OrderLogDaoImpl) Create(ctx context.Context, orderLog *model.OrderStatu
 	return orderLog.ID, result.Error
 }
 
-func (d *OrderLogDaoImpl) GetByOrderNo(ctx context.Context, orderNo int) (orderLogList []*model.OrderStatusLog, err error) {
+func (d *OrderLogDaoImpl) GetByOrderNo(ctx context.Context, orderNo string) (orderLogList []*model.OrderStatusLog, err error) {
 	err = d.db.WithContext(ctx).Where("order_no = ?", orderNo).Find(&orderLogList).Error
 	return
 }

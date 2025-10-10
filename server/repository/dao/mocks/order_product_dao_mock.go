@@ -51,7 +51,7 @@ func (mr *MockOrderProductDaoMockRecorder) Create(ctx, orderProduct interface{})
 }
 
 // GetByOrderNo mocks base method.
-func (m *MockOrderProductDao) GetByOrderNo(ctx context.Context, orderNo int) ([]*model.OrderProduct, error) {
+func (m *MockOrderProductDao) GetByOrderNo(ctx context.Context, orderNo string) ([]*model.OrderProduct, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByOrderNo", ctx, orderNo)
 	ret0, _ := ret[0].([]*model.OrderProduct)
