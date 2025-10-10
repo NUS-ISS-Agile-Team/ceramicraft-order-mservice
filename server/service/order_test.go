@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	// "errors"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/types"
 	utilMocks "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils/mocks"
 	daoMocks "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao/mocks"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common/paymentpb"
 	"github.com/golang/mock/gomock"
 	"go.uber.org/zap"
@@ -335,6 +337,232 @@ func TestOrderServiceImpl_CreateOrder_OrderDaoCreateError(t *testing.T) {
 	}
 	if orderNo != "" {
 		t.Errorf("Expected empty orderNo, got: %s", orderNo)
+	}
+}
+
+func TestOrderServiceImpl_ListOrders_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockOrderProductDao := daoMocks.NewMockOrderProductDao(ctrl)
+	mockOrderLogDao := daoMocks.NewMockOrderLogDao(ctrl)
+
+	ctx := context.Background()
+	req := types.ListOrderRequest{
+		UserID: 123,
+		Limit:  2,
+		Offset: 0,
+	}
+	orders := []*model.Order{
+		{
+			OrderNo:           "order1",
+			ReceiverFirstName: "A",
+			ReceiverLastName:  "B",
+			ReceiverPhone:     "123",
+			CreateTime:        time.Now(),
+			TotalAmount:       100,
+			Status:            consts.CREATED,
+		},
+		{
+			OrderNo:           "order2",
+			ReceiverFirstName: "C",
+			ReceiverLastName:  "D",
+			ReceiverPhone:     "456",
+			CreateTime:        time.Now(),
+			TotalAmount:       200,
+			Status:            consts.PAYED,
+		},
+	}
+	mockOrderDao.EXPECT().GetByOrderQuery(ctx, gomock.Any()).Return(orders, nil)
+
+	service := &OrderServiceImpl{
+		orderDao:        mockOrderDao,
+		orderProductDao: mockOrderProductDao,
+		orderLogDao:     mockOrderLogDao,
+	}
+	resp, err := service.ListOrders(ctx, req)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+	if len(resp.Orders) != 2 {
+		t.Errorf("Expected 2 orders, got: %d", len(resp.Orders))
+	}
+	if resp.Orders[0].OrderNo != "order1" || resp.Orders[1].OrderNo != "order2" {
+		t.Errorf("OrderNo mismatch: %v", resp.Orders)
+	}
+}
+
+func TestOrderServiceImpl_ListOrders_DaoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockOrderProductDao := daoMocks.NewMockOrderProductDao(ctrl)
+	mockOrderLogDao := daoMocks.NewMockOrderLogDao(ctrl)
+
+	ctx := context.Background()
+	req := types.ListOrderRequest{UserID: 123}
+	mockOrderDao.EXPECT().GetByOrderQuery(ctx, gomock.Any()).Return(nil, errors.New("db error"))
+
+	service := &OrderServiceImpl{
+		orderDao:        mockOrderDao,
+		orderProductDao: mockOrderProductDao,
+		orderLogDao:     mockOrderLogDao,
+	}
+	resp, err := service.ListOrders(ctx, req)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	if resp != nil {
+		t.Errorf("Expected nil resp, got: %v", resp)
+	}
+}
+
+func TestOrderServiceImpl_GetOrderDetail_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockOrderProductDao := daoMocks.NewMockOrderProductDao(ctrl)
+	mockOrderLogDao := daoMocks.NewMockOrderLogDao(ctrl)
+
+	ctx := context.Background()
+	orderNo := "order1"
+	order := &model.Order{
+		OrderNo:           orderNo,
+		UserID:            123,
+		Status:            consts.CREATED,
+		TotalAmount:       100,
+		PayAmount:         100,
+		ShippingFee:       10,
+		Tax:               5,
+		ReceiverFirstName: "A",
+		ReceiverLastName:  "B",
+		ReceiverPhone:     "123",
+		ReceiverAddress:   "addr",
+		ReceiverCountry:   "CN",
+		ReceiverZipCode:   10000,
+		Remark:            "remark",
+		LogisticsNo:       "LN123",
+		CreateTime:        time.Now(),
+		UpdateTime:        time.Now(),
+	}
+	products := []*model.OrderProduct{
+		{
+			ID: 1, ProductID: 2, ProductName: "P1", Price: 10, Quantity: 1, TotalPrice: 10, CreateTime: time.Now(), UpdateTime: time.Now(),
+		},
+	}
+	logs := []*model.OrderStatusLog{
+		{
+			ID: 1, CurrentStatus: consts.CREATED, Remark: "created", CreateTime: time.Now(),
+		},
+	}
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(order, nil)
+	mockOrderProductDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(products, nil)
+	mockOrderLogDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(logs, nil)
+
+	service := &OrderServiceImpl{
+		orderDao:        mockOrderDao,
+		orderProductDao: mockOrderProductDao,
+		orderLogDao:     mockOrderLogDao,
+	}
+	detail, err := service.GetOrderDetail(ctx, orderNo)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+	if detail.OrderNo != orderNo {
+		t.Errorf("OrderNo mismatch: %v", detail.OrderNo)
+	}
+	if len(detail.OrderItems) != 1 || detail.OrderItems[0].ProductName != "P1" {
+		t.Errorf("OrderItems mismatch: %v", detail.OrderItems)
+	}
+	if len(detail.StatusLogs) != 1 || detail.StatusLogs[0].Remark != "created" {
+		t.Errorf("StatusLogs mismatch: %v", detail.StatusLogs)
+	}
+}
+
+func TestOrderServiceImpl_GetOrderDetail_OrderNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockOrderProductDao := daoMocks.NewMockOrderProductDao(ctrl)
+	mockOrderLogDao := daoMocks.NewMockOrderLogDao(ctrl)
+
+	ctx := context.Background()
+	orderNo := "order1"
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(nil, errors.New("not found"))
+
+	service := &OrderServiceImpl{
+		orderDao:        mockOrderDao,
+		orderProductDao: mockOrderProductDao,
+		orderLogDao:     mockOrderLogDao,
+	}
+	detail, err := service.GetOrderDetail(ctx, orderNo)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	if detail != nil {
+		t.Errorf("Expected nil detail, got: %v", detail)
+	}
+}
+
+func TestOrderServiceImpl_GetOrderDetail_ProductError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockOrderProductDao := daoMocks.NewMockOrderProductDao(ctrl)
+	mockOrderLogDao := daoMocks.NewMockOrderLogDao(ctrl)
+
+	ctx := context.Background()
+	orderNo := "order1"
+	order := &model.Order{OrderNo: orderNo}
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(order, nil)
+	mockOrderProductDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(nil, errors.New("product error"))
+
+	service := &OrderServiceImpl{
+		orderDao:        mockOrderDao,
+		orderProductDao: mockOrderProductDao,
+		orderLogDao:     mockOrderLogDao,
+	}
+	detail, err := service.GetOrderDetail(ctx, orderNo)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	if detail != nil {
+		t.Errorf("Expected nil detail, got: %v", detail)
+	}
+}
+
+func TestOrderServiceImpl_GetOrderDetail_LogError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockOrderProductDao := daoMocks.NewMockOrderProductDao(ctrl)
+	mockOrderLogDao := daoMocks.NewMockOrderLogDao(ctrl)
+
+	ctx := context.Background()
+	orderNo := "order1"
+	order := &model.Order{OrderNo: orderNo}
+	products := []*model.OrderProduct{{ID: 1}}
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(order, nil)
+	mockOrderProductDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(products, nil)
+	mockOrderLogDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(nil, errors.New("log error"))
+
+	service := &OrderServiceImpl{
+		orderDao:        mockOrderDao,
+		orderProductDao: mockOrderProductDao,
+		orderLogDao:     mockOrderLogDao,
+	}
+	detail, err := service.GetOrderDetail(ctx, orderNo)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	if detail != nil {
+		t.Errorf("Expected nil detail, got: %v", detail)
 	}
 }
 
