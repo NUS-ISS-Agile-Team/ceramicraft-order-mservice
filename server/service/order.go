@@ -144,11 +144,11 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	go func() {
 		oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created", 1)
 		if err != nil {
-			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+			log.Logger.Infof("get order status changed msg failed, err %s", err.Error())
 		}
 		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
 		if err != nil {
-			log.Logger.Errorf("send message failed, err %s", err)
+			log.Logger.Infof("send message failed, err %s", err)
 		}
 	}()
 
@@ -192,11 +192,11 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	go func() {
 		oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created --> Paid", 2)
 		if err != nil {
-			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+			log.Logger.Infof("get order status changed msg failed, err %s", err.Error())
 		}
 		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
 		if err != nil {
-			log.Logger.Errorf("send message failed, err %s", err)
+			log.Logger.Infof("send message failed, err %s", err)
 		}
 	}()
 

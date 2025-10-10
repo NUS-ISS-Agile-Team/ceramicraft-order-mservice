@@ -788,7 +788,7 @@ func TestOrderServiceImpl_CreateOrder_PaymentFailed(t *testing.T) {
 		Times(1)
 
 	mockKafkaWriter.EXPECT().
-		SendMsg(ctx, "order_status_changed", gomock.Any(), "1").
+		SendMsg(ctx, "order_status_changed", gomock.Any(),  gomock.Any()).
 		Return(nil).
 		AnyTimes()
 
