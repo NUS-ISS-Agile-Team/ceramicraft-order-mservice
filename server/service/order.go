@@ -32,6 +32,7 @@ type OrderServiceImpl struct {
 	productServiceClient productpb.ProductServiceClient
 	paymentServiceClient paymentpb.PaymentServiceClient
 	messageWriter        utils.Writer
+	syncMode             bool
 }
 
 func GetOrderServiceInstance() *OrderServiceImpl {
@@ -42,6 +43,7 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 		productServiceClient: clients.GetProductClient(),
 		paymentServiceClient: clients.GetPaymentClient(),
 		messageWriter:        utils.GetWriter(),
+		syncMode:             false,
 	}
 }
 
@@ -141,16 +143,27 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 
-	go func() {
+	if o.syncMode {
 		oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created", 1)
 		if err != nil {
-			log.Logger.Infof("get order status changed msg failed, err %s", err.Error())
+			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
 		}
 		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
 		if err != nil {
-			log.Logger.Infof("send message failed, err %s", err)
+			log.Logger.Errorf("send message failed, err %s", err)
 		}
-	}()
+	} else {
+		go func() {
+			oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created", 1)
+			if err != nil {
+				log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+			}
+			err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
+			if err != nil {
+				log.Logger.Errorf("send message failed, err %s", err)
+			}
+		}()
+	}
 
 	// 5. rpc: call product service and decrease stock
 	for _, orderItem := range orderInfo.OrderItemList {
@@ -189,16 +202,27 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 
-	go func() {
+	if o.syncMode {
 		oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created --> Paid", 2)
 		if err != nil {
-			log.Logger.Infof("get order status changed msg failed, err %s", err.Error())
+			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
 		}
 		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
 		if err != nil {
-			log.Logger.Infof("send message failed, err %s", err)
+			log.Logger.Errorf("send message failed, err %s", err)
 		}
-	}()
+	} else {
+		go func() {
+			oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created --> Paid", 2)
+			if err != nil {
+				log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+			}
+			err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderId, oscMsg)
+			if err != nil {
+				log.Logger.Errorf("send message failed, err %s", err)
+			}
+		}()
+	}
 
 	return orderId, nil
 }

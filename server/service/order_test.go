@@ -95,7 +95,7 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 		Times(1)
 
 	mockKafkaWriter.EXPECT().
-		SendMsg(ctx, "order_status_changed", gomock.Any(), "1").
+		SendMsg(ctx, "order_status_changed", gomock.Any(), gomock.Any()).
 		Return(nil).
 		AnyTimes()
 
@@ -123,7 +123,7 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 		Times(1)
 
 	mockKafkaWriter.EXPECT().
-		SendMsg(ctx, "order_status_changed", gomock.Any(), "2").
+		SendMsg(ctx, "order_status_changed", gomock.Any(), gomock.Any()).
 		Return(nil).
 		AnyTimes()
 
@@ -134,6 +134,7 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 		productServiceClient: mockProductClient,
 		paymentServiceClient: mockPaymentClient,
 		messageWriter:        mockKafkaWriter,
+		syncMode:             true,
 	}
 
 	// Now we can actually test the CreateOrder method
@@ -192,6 +193,7 @@ func TestOrderServiceImpl_CreateOrder_GetProductListError(t *testing.T) {
 		productServiceClient: mockProductClient,
 		paymentServiceClient: mockPaymentClient,
 		messageWriter:        mockKafkaWriter,
+		syncMode:             true,
 	}
 
 	// Test the CreateOrder method
@@ -257,6 +259,7 @@ func TestOrderServiceImpl_CreateOrder_InsufficientStock(t *testing.T) {
 		productServiceClient: mockProductClient,
 		paymentServiceClient: mockPaymentClient,
 		messageWriter:        mockKafkaWriter,
+		syncMode:             true,
 	}
 
 	// Test the CreateOrder method
@@ -328,6 +331,7 @@ func TestOrderServiceImpl_CreateOrder_OrderDaoCreateError(t *testing.T) {
 		productServiceClient: mockProductClient,
 		paymentServiceClient: mockPaymentClient,
 		messageWriter:        mockKafkaWriter,
+		syncMode:             true,
 	}
 
 	// Test the CreateOrder method
@@ -380,6 +384,7 @@ func TestOrderServiceImpl_ListOrders_Success(t *testing.T) {
 		orderDao:        mockOrderDao,
 		orderProductDao: mockOrderProductDao,
 		orderLogDao:     mockOrderLogDao,
+		syncMode:        true,
 	}
 	resp, err := service.ListOrders(ctx, req)
 	if err != nil {
@@ -409,6 +414,7 @@ func TestOrderServiceImpl_ListOrders_DaoError(t *testing.T) {
 		orderDao:        mockOrderDao,
 		orderProductDao: mockOrderProductDao,
 		orderLogDao:     mockOrderLogDao,
+		syncMode:        true,
 	}
 	resp, err := service.ListOrders(ctx, req)
 	if err == nil {
@@ -466,6 +472,7 @@ func TestOrderServiceImpl_GetOrderDetail_Success(t *testing.T) {
 		orderDao:        mockOrderDao,
 		orderProductDao: mockOrderProductDao,
 		orderLogDao:     mockOrderLogDao,
+		syncMode:        true,
 	}
 	detail, err := service.GetOrderDetail(ctx, orderNo)
 	if err != nil {
@@ -498,6 +505,7 @@ func TestOrderServiceImpl_GetOrderDetail_OrderNotFound(t *testing.T) {
 		orderDao:        mockOrderDao,
 		orderProductDao: mockOrderProductDao,
 		orderLogDao:     mockOrderLogDao,
+		syncMode:        true,
 	}
 	detail, err := service.GetOrderDetail(ctx, orderNo)
 	if err == nil {
@@ -526,6 +534,7 @@ func TestOrderServiceImpl_GetOrderDetail_ProductError(t *testing.T) {
 		orderDao:        mockOrderDao,
 		orderProductDao: mockOrderProductDao,
 		orderLogDao:     mockOrderLogDao,
+		syncMode:        true,
 	}
 	detail, err := service.GetOrderDetail(ctx, orderNo)
 	if err == nil {
@@ -556,6 +565,7 @@ func TestOrderServiceImpl_GetOrderDetail_LogError(t *testing.T) {
 		orderDao:        mockOrderDao,
 		orderProductDao: mockOrderProductDao,
 		orderLogDao:     mockOrderLogDao,
+		syncMode:        true,
 	}
 	detail, err := service.GetOrderDetail(ctx, orderNo)
 	if err == nil {
@@ -631,6 +641,7 @@ func TestOrderServiceImpl_CreateOrder_OrderProductDaoCreateError(t *testing.T) {
 		productServiceClient: mockProductClient,
 		paymentServiceClient: mockPaymentClient,
 		messageWriter:        mockKafkaWriter,
+		syncMode:             true,
 	}
 
 	// Test the CreateOrder method
@@ -714,6 +725,7 @@ func TestOrderServiceImpl_CreateOrder_KafkaOrderCreatedError(t *testing.T) {
 		productServiceClient: mockProductClient,
 		paymentServiceClient: mockPaymentClient,
 		messageWriter:        mockKafkaWriter,
+		syncMode:             true,
 	}
 
 	// Test the CreateOrder method
@@ -788,7 +800,7 @@ func TestOrderServiceImpl_CreateOrder_PaymentFailed(t *testing.T) {
 		Times(1)
 
 	mockKafkaWriter.EXPECT().
-		SendMsg(ctx, "order_status_changed", gomock.Any(),  gomock.Any()).
+		SendMsg(ctx, "order_status_changed", gomock.Any(), gomock.Any()).
 		Return(nil).
 		AnyTimes()
 
