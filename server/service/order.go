@@ -23,6 +23,7 @@ type OrderService interface {
 	ListOrders(ctx context.Context, req types.ListOrderRequest) (resp *types.ListOrderResponse, err error)
 	GetOrderDetail(ctx context.Context, orderNo string) (detail *types.OrderDetail, err error)
 	CustomerGetOrderDetail(ctx context.Context, orderNo string, userID int) (detail *types.OrderDetail, err error)
+	UpdateOrderStatus(ctx context.Context, orderNo string, newStatus int) (err error)
 }
 
 type OrderServiceImpl struct {
@@ -404,17 +405,17 @@ func (o *OrderServiceImpl) GetOrderDetail(ctx context.Context, orderNo string) (
 func getOrderStatusName(status int) string {
 	switch status {
 	case consts.CREATED:
-		return "已创建"
+		return "Created"
 	case consts.PAYED:
-		return "已支付"
+		return "Paid"
 	case consts.SHIPPED:
-		return "已发货"
+		return "Shipped"
 	case consts.DELIVERED:
-		return "已送达"
+		return "Delivered"
 	case consts.CANCELED:
-		return "已取消"
+		return "Canceled"
 	default:
-		return "未知状态"
+		return "Unknown"
 	}
 }
 
@@ -430,4 +431,62 @@ func (o *OrderServiceImpl) CustomerGetOrderDetail(ctx context.Context, orderNo s
 		return nil, wrongUserErr
 	}
 	return orderInfo, nil
+}
+
+func (o *OrderServiceImpl) UpdateOrderStatus(ctx context.Context, orderNo string, newStatus int, shippingNo string) (err error) {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
+	orderInfo, err := o.orderDao.GetByOrderNo(ctx, orderNo)
+	if err != nil {
+		return err
+	}
+
+	oldStatus := orderInfo.Status
+	if oldStatus != newStatus-1 {
+		statusErr := fmt.Errorf("UpdateOrderStatus: Invalid status, cur: %d, next: %d", orderInfo.Status, newStatus)
+		return statusErr
+	}
+
+	switch newStatus {
+		case consts.DELIVERED:
+			err = o.orderDao.UpdateStatusAndConfirmTime(ctx, orderNo, newStatus, time.Now())
+			if err != nil {
+				return err
+			}
+		case consts.SHIPPED:
+			err = o.orderDao.UpdateStatusWithDeliveryInfo(ctx, orderNo, newStatus, time.Now(), shippingNo)
+			if err != nil {
+				return err
+			}
+		default:
+			defaultErr := fmt.Errorf("UpdateOrderStatus: status no support, cur status %d", newStatus)
+			return defaultErr
+	}
+
+	if o.syncMode {
+		statusChangeRemark := fmt.Sprintf("%s --> %s", getOrderStatusName(oldStatus), getOrderStatusName(newStatus))
+		oscMsg, err := getOrderStatusChangedMsg(orderNo, orderInfo.UserID, statusChangeRemark, newStatus)
+		if err != nil {
+			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+		}
+		err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderNo, oscMsg)
+		if err != nil {
+			log.Logger.Errorf("send message failed, err %s", err)
+		}
+	} else {
+		go func() {
+			statusChangeRemark := fmt.Sprintf("%s --> %s", getOrderStatusName(oldStatus), getOrderStatusName(newStatus))
+			oscMsg, err := getOrderStatusChangedMsg(orderNo, orderInfo.UserID, statusChangeRemark, newStatus)
+			if err != nil {
+				log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+			}
+			err = o.messageWriter.SendMsg(ctx, "order_status_changed", orderNo, oscMsg)
+			if err != nil {
+				log.Logger.Errorf("send message failed, err %s", err)
+			}
+		}()
+	}
+
+	return nil
 }

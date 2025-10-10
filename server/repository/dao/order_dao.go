@@ -15,6 +15,8 @@ type OrderDao interface {
 	UpdateStatusAndPayment(ctx context.Context, orderNo string, status int, payTime time.Time) error
 	GetByOrderNo(ctx context.Context, orderNo string) (o *model.Order, err error)
 	GetByOrderQuery(ctx context.Context, query OrderQuery) (oList []*model.Order, err error)
+	UpdateStatusAndConfirmTime(ctx context.Context, orderNo string, status int, t time.Time) (err error)
+	UpdateStatusWithDeliveryInfo(ctx context.Context, orderNo string, status int, t time.Time, shippingNo string) (err error)
 }
 
 var (
@@ -47,6 +49,27 @@ func (d *OrderDaoImpl) UpdateStatusAndPayment(ctx context.Context, orderNo strin
 		Updates(map[string]interface{}{
 			"status":   status,
 			"pay_time": payTime,
+		}).Error
+}
+
+func (d *OrderDaoImpl) UpdateStatusAndConfirmTime(ctx context.Context, orderNo string, status int, t time.Time) (err error) {
+	return d.db.WithContext(ctx).
+		Model(&model.Order{}).
+		Where("order_no = ?", orderNo).
+		Updates(map[string]interface{}{
+			"status":       status,
+			"confirm_time": t,
+		}).Error
+}
+
+func (d *OrderDaoImpl) UpdateStatusWithDeliveryInfo(ctx context.Context, orderNo string, status int, t time.Time, shippingNo string) (err error) {
+	return d.db.WithContext(ctx).
+		Model(&model.Order{}).
+		Where("order_no = ?", orderNo).
+		Updates(map[string]interface{}{
+			"status":       status,
+			"delivery_time": t,
+			"logistics_no": shippingNo,
 		}).Error
 }
 

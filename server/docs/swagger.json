@@ -8,6 +8,52 @@
     },
     "basePath": "/order-ms/v1",
     "paths": {
+        "/customer/confirm": {
+            "post": {
+                "description": "用户确认收到商品，订单状态变更为已收货",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "用户确认收货",
+                "parameters": [
+                    {
+                        "description": "确认收货信息",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.ConfirmOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/customer/create": {
             "post": {
                 "description": "创建一个新订单",
@@ -287,6 +333,52 @@
                     }
                 }
             }
+        },
+        "/merchant/ship": {
+            "post": {
+                "description": "商家标记订单为已发货状态，并添加物流单号",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "商家发货",
+                "parameters": [
+                    {
+                        "description": "发货信息",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.ShipOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -302,6 +394,14 @@
                 },
                 "status": {
                     "type": "integer"
+                }
+            }
+        },
+        "types.ConfirmOrderRequest": {
+            "type": "object",
+            "properties": {
+                "order_no": {
+                    "type": "string"
                 }
             }
         },
@@ -620,6 +720,17 @@
                 },
                 "status_name": {
                     "description": "状态名称",
+                    "type": "string"
+                }
+            }
+        },
+        "types.ShipOrderRequest": {
+            "type": "object",
+            "properties": {
+                "order_no": {
+                    "type": "string"
+                },
+                "tracking_no": {
                     "type": "string"
                 }
             }

@@ -82,6 +82,20 @@ func (mr *MockOrderDaoMockRecorder) GetByOrderQuery(ctx, query interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByOrderQuery", reflect.TypeOf((*MockOrderDao)(nil).GetByOrderQuery), ctx, query)
 }
 
+// UpdateStatusAndConfirmTime mocks base method.
+func (m *MockOrderDao) UpdateStatusAndConfirmTime(ctx context.Context, orderNo string, status int, t time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateStatusAndConfirmTime", ctx, orderNo, status, t)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateStatusAndConfirmTime indicates an expected call of UpdateStatusAndConfirmTime.
+func (mr *MockOrderDaoMockRecorder) UpdateStatusAndConfirmTime(ctx, orderNo, status, t interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatusAndConfirmTime", reflect.TypeOf((*MockOrderDao)(nil).UpdateStatusAndConfirmTime), ctx, orderNo, status, t)
+}
+
 // UpdateStatusAndPayment mocks base method.
 func (m *MockOrderDao) UpdateStatusAndPayment(ctx context.Context, orderNo string, status int, payTime time.Time) error {
 	m.ctrl.T.Helper()
@@ -94,4 +108,18 @@ func (m *MockOrderDao) UpdateStatusAndPayment(ctx context.Context, orderNo strin
 func (mr *MockOrderDaoMockRecorder) UpdateStatusAndPayment(ctx, orderNo, status, payTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatusAndPayment", reflect.TypeOf((*MockOrderDao)(nil).UpdateStatusAndPayment), ctx, orderNo, status, payTime)
+}
+
+// UpdateStatusWithDeliveryInfo mocks base method.
+func (m *MockOrderDao) UpdateStatusWithDeliveryInfo(ctx context.Context, orderNo string, status int, t time.Time, shippingNo string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateStatusWithDeliveryInfo", ctx, orderNo, status, t, shippingNo)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateStatusWithDeliveryInfo indicates an expected call of UpdateStatusWithDeliveryInfo.
+func (mr *MockOrderDaoMockRecorder) UpdateStatusWithDeliveryInfo(ctx, orderNo, status, t, shippingNo interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateStatusWithDeliveryInfo", reflect.TypeOf((*MockOrderDao)(nil).UpdateStatusWithDeliveryInfo), ctx, orderNo, status, t, shippingNo)
 }

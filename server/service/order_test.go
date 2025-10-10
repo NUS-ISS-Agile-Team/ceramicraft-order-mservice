@@ -1090,3 +1090,180 @@ func TestOrderServiceImpl_CustomerGetOrderDetail_LogError(t *testing.T) {
 		t.Errorf("Expected nil detail, got: %v", detail)
 	}
 }
+
+// TestOrderServiceImpl_UpdateOrderStatus_ToShipped_Success tests successful update to shipped status
+func TestOrderServiceImpl_UpdateOrderStatus_ToShipped_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockMessageWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+	orderNo := "TEST001"
+	newStatus := int(consts.SHIPPED)
+	logisticsInfo := "SF12345"
+
+	// Mock successful DAO operations
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(&model.Order{
+		OrderNo: orderNo,
+		Status:  int(consts.PAYED),
+	}, nil)
+	mockOrderDao.EXPECT().UpdateStatusWithDeliveryInfo(ctx, orderNo, newStatus, gomock.Any(), logisticsInfo).Return(nil)
+
+	// Mock successful Kafka message
+	mockMessageWriter.EXPECT().SendMsg(ctx, "order_status_changed", gomock.Any(), gomock.Any()).Return(nil)
+
+	service := &OrderServiceImpl{
+		orderDao:      mockOrderDao,
+		messageWriter: mockMessageWriter,
+		syncMode:      true,
+	}
+
+	err := service.UpdateOrderStatus(ctx, orderNo, newStatus, logisticsInfo)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+}
+
+// TestOrderServiceImpl_UpdateOrderStatus_ToDelivered_Success tests successful update to delivered status
+func TestOrderServiceImpl_UpdateOrderStatus_ToDelivered_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockMessageWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+	orderNo := "TEST002"
+	newStatus := int(consts.DELIVERED)
+
+	// Mock successful DAO operations
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(&model.Order{
+		OrderNo: orderNo,
+		Status:  int(consts.SHIPPED),
+	}, nil)
+	mockOrderDao.EXPECT().UpdateStatusAndConfirmTime(ctx, orderNo, newStatus, gomock.Any()).Return(nil)
+
+	// Mock successful Kafka message
+	mockMessageWriter.EXPECT().SendMsg(ctx, "order_status_changed", gomock.Any(), gomock.Any()).Return(nil)
+
+	service := &OrderServiceImpl{
+		orderDao:      mockOrderDao,
+		messageWriter: mockMessageWriter,
+		syncMode:      true,
+	}
+
+	err := service.UpdateOrderStatus(ctx, orderNo, newStatus, "")
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+}
+
+// TestOrderServiceImpl_UpdateOrderStatus_OrderNotFound tests order not found scenario
+func TestOrderServiceImpl_UpdateOrderStatus_OrderNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+
+	ctx := context.Background()
+	orderNo := "NOTFOUND"
+	newStatus := int(consts.SHIPPED)
+
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(nil, errors.New("order not found"))
+
+	service := &OrderServiceImpl{
+		orderDao: mockOrderDao,
+		syncMode: true,
+	}
+
+	err := service.UpdateOrderStatus(ctx, orderNo, newStatus, "")
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+}
+
+// TestOrderServiceImpl_UpdateOrderStatus_InvalidStatusTransition tests invalid status transition
+func TestOrderServiceImpl_UpdateOrderStatus_InvalidStatusTransition(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+
+	ctx := context.Background()
+	orderNo := "TEST003"
+	newStatus := int(consts.DELIVERED)
+
+	// Mock order with status that cannot transition directly to delivered
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(&model.Order{
+		OrderNo: orderNo,
+		Status:  int(consts.PAYED), // Cannot go from PAYED(2) to DELIVERED(4)
+	}, nil)
+
+	service := &OrderServiceImpl{
+		orderDao: mockOrderDao,
+		syncMode: true,
+	}
+
+	err := service.UpdateOrderStatus(ctx, orderNo, newStatus, "")
+	if err == nil {
+		t.Errorf("Expected error for invalid status transition, got nil")
+	}
+}
+
+// TestOrderServiceImpl_UpdateOrderStatus_UnsupportedStatus tests unsupported status update
+func TestOrderServiceImpl_UpdateOrderStatus_UnsupportedStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+
+	ctx := context.Background()
+	orderNo := "TEST004"
+	newStatus := int(consts.PAYED) // Unsupported status for this method
+
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(&model.Order{
+		OrderNo: orderNo,
+		Status:  int(consts.CREATED),
+	}, nil)
+
+	service := &OrderServiceImpl{
+		orderDao: mockOrderDao,
+		syncMode: true,
+	}
+
+	err := service.UpdateOrderStatus(ctx, orderNo, newStatus, "")
+	if err == nil {
+		t.Errorf("Expected error for unsupported status, got nil")
+	}
+}
+
+// TestOrderServiceImpl_UpdateOrderStatus_DaoUpdateError tests DAO update error
+func TestOrderServiceImpl_UpdateOrderStatus_DaoUpdateError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+
+	
+	ctx := context.Background()
+	orderNo := "TEST005"
+	newStatus := int(consts.DELIVERED)
+
+	mockOrderDao.EXPECT().GetByOrderNo(ctx, orderNo).Return(&model.Order{
+		OrderNo: orderNo,
+		Status:  int(consts.SHIPPED),
+	}, nil)
+	mockOrderDao.EXPECT().UpdateStatusAndConfirmTime(ctx, orderNo, newStatus, gomock.Any()).Return(errors.New("database error"))
+
+	service := &OrderServiceImpl{
+		orderDao: mockOrderDao,
+		syncMode: true,
+	}
+
+	err := service.UpdateOrderStatus(ctx, orderNo, newStatus, "")
+	if err == nil {
+		t.Errorf("Expected error from DAO update, got nil")
+	}
+}
