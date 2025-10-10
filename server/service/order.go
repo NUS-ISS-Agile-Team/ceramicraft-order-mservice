@@ -22,6 +22,7 @@ type OrderService interface {
 	CreateOrder(ctx context.Context, orderInfo types.OrderInfo) (orderNo string, err error)
 	ListOrders(ctx context.Context, req types.ListOrderRequest) (resp *types.ListOrderResponse, err error)
 	GetOrderDetail(ctx context.Context, orderNo string) (detail *types.OrderDetail, err error)
+	CustomerGetOrderDetail(ctx context.Context, orderNo string, userID int) (detail *types.OrderDetail, err error)
 }
 
 type OrderServiceImpl struct {
@@ -415,4 +416,99 @@ func getOrderStatusName(status int) string {
 	default:
 		return "未知状态"
 	}
+}
+
+
+func (o *OrderServiceImpl) CustomerGetOrderDetail(ctx context.Context, orderNo string, userId int) (detail *types.OrderDetail, err error) {
+	// 1. 查询订单基本信息
+	order, err := o.orderDao.GetByOrderNo(ctx, orderNo)
+	if err != nil {
+		log.Logger.Errorf("CustomerGetOrderDetail: get order failed, orderNo: %s, err: %s", orderNo, err.Error())
+		return nil, err
+	}
+
+	if order.UserID != userId {
+		wrongUserErr := errors.New("Invalid user ID")
+		log.Logger.Errorf("CustomerGetOrderDetail: can not get other user's order info, err %s", wrongUserErr)
+		return nil, wrongUserErr
+	}
+
+	// 2. 查询订单商品列表
+	orderProducts, err := o.orderProductDao.GetByOrderNo(ctx, orderNo)
+	if err != nil {
+		log.Logger.Errorf("CustomerGetOrderDetail: get order products failed, orderNo: %s, err: %s", orderNo, err.Error())
+		return nil, err
+	}
+
+	// 3. 查询订单状态日志
+	orderLogs, err := o.orderLogDao.GetByOrderNo(ctx, orderNo)
+	if err != nil {
+		log.Logger.Errorf("CustomerGetOrderDetail: get order logs failed, orderNo: %s, err: %s", orderNo, err.Error())
+		return nil, err
+	}
+
+	// 4. 转换订单商品信息
+	orderItems := make([]*types.OrderItemDetail, 0, len(orderProducts))
+	for _, product := range orderProducts {
+		orderItem := &types.OrderItemDetail{
+			ID:          product.ID,
+			ProductID:   product.ProductID,
+			ProductName: product.ProductName,
+			Price:       product.Price,
+			Quantity:    product.Quantity,
+			TotalPrice:  product.TotalPrice,
+			CreateTime:  product.CreateTime,
+			UpdateTime:  product.UpdateTime,
+		}
+		orderItems = append(orderItems, orderItem)
+	}
+
+	// 5. 转换订单状态日志
+	statusLogs := make([]*types.OrderStatusLogDetail, 0, len(orderLogs))
+	for _, log := range orderLogs {
+		statusLog := &types.OrderStatusLogDetail{
+			ID:            log.ID,
+			CurrentStatus: log.CurrentStatus,
+			StatusName:    getOrderStatusName(log.CurrentStatus),
+			Remark:        log.Remark,
+			CreateTime:    log.CreateTime,
+		}
+		statusLogs = append(statusLogs, statusLog)
+	}
+
+	// 6. 构建订单详情响应
+	detail = &types.OrderDetail{
+		// 基本订单信息
+		OrderNo:      order.OrderNo,
+		UserID:       order.UserID,
+		Status:       order.Status,
+		StatusName:   getOrderStatusName(order.Status),
+		TotalAmount:  int(order.TotalAmount),
+		PayAmount:    int(order.PayAmount),
+		ShippingFee:  int(order.ShippingFee),
+		Tax:          int(order.Tax),
+		PayTime:      order.PayTime,
+		CreateTime:   order.CreateTime,
+		UpdateTime:   order.UpdateTime,
+		DeliveryTime: order.DeliveryTime,
+		ConfirmTime:  order.ConfirmTime,
+
+		// 收货信息
+		ReceiverFirstName: order.ReceiverFirstName,
+		ReceiverLastName:  order.ReceiverLastName,
+		ReceiverPhone:     order.ReceiverPhone,
+		ReceiverAddress:   order.ReceiverAddress,
+		ReceiverCountry:   order.ReceiverCountry,
+		ReceiverZipCode:   order.ReceiverZipCode,
+
+		// 其他信息
+		Remark:      order.Remark,
+		LogisticsNo: order.LogisticsNo,
+
+		// 关联数据
+		OrderItems: orderItems,
+		StatusLogs: statusLogs,
+	}
+
+	return detail, nil
 }

@@ -10,6 +10,130 @@ definitions:
       status:
         type: integer
     type: object
+  types.CustomerListOrderRequest:
+    properties:
+      end_time:
+        description: 创建时间结束范围
+        type: string
+      limit:
+        description: 分页限制
+        type: integer
+      offset:
+        description: 分页偏移
+        type: integer
+      start_time:
+        description: 创建时间开始范围
+        type: string
+    type: object
+  types.ListOrderRequest:
+    properties:
+      end_time:
+        description: 创建时间结束范围
+        type: string
+      limit:
+        description: 分页限制
+        type: integer
+      offset:
+        description: 分页偏移
+        type: integer
+      order_no:
+        description: 订单号筛选
+        type: string
+      order_status:
+        description: 订单状态筛选
+        type: integer
+      start_time:
+        description: 创建时间开始范围
+        type: string
+      user_id:
+        description: 用户ID筛选
+        type: integer
+    type: object
+  types.ListOrderResponse:
+    properties:
+      orders:
+        items:
+          $ref: '#/definitions/types.OrderInfoInList'
+        type: array
+      total:
+        type: integer
+    type: object
+  types.OrderDetail:
+    properties:
+      confirm_time:
+        description: 收货确认时间
+        type: string
+      create_time:
+        description: 创建时间
+        type: string
+      delivery_time:
+        description: 发货时间
+        type: string
+      logistics_no:
+        description: 物流单号
+        type: string
+      order_items:
+        description: 订单商品列表
+        items:
+          $ref: '#/definitions/types.OrderItemDetail'
+        type: array
+      order_no:
+        description: 基本订单信息
+        type: string
+      pay_amount:
+        description: 实际支付金额
+        type: integer
+      pay_time:
+        description: 支付时间
+        type: string
+      receiver_address:
+        description: 收货地址
+        type: string
+      receiver_country:
+        description: 收货人国家
+        type: string
+      receiver_first_name:
+        description: 收货信息
+        type: string
+      receiver_last_name:
+        description: 收货人姓名
+        type: string
+      receiver_phone:
+        description: 收货人电话
+        type: string
+      receiver_zip_code:
+        description: 收货人邮政编码
+        type: integer
+      remark:
+        description: 其他信息
+        type: string
+      shipping_fee:
+        description: 运费
+        type: integer
+      status:
+        description: 订单状态
+        type: integer
+      status_logs:
+        description: 订单状态变更日志
+        items:
+          $ref: '#/definitions/types.OrderStatusLogDetail'
+        type: array
+      status_name:
+        description: 订单状态名称
+        type: string
+      tax:
+        description: 税费
+        type: integer
+      total_amount:
+        description: 总金额
+        type: integer
+      update_time:
+        description: 更新时间
+        type: string
+      user_id:
+        description: 下单用户
+        type: integer
+    type: object
   types.OrderInfo:
     properties:
       order_item_list:
@@ -39,6 +163,53 @@ definitions:
         description: 备注
         type: string
     type: object
+  types.OrderInfoInList:
+    properties:
+      create_time:
+        type: string
+      order_no:
+        type: string
+      receiver_first_name:
+        description: 收货人姓名
+        type: string
+      receiver_last_name:
+        description: 收货人姓名
+        type: string
+      receiver_phone:
+        description: 收货人电话
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: integer
+    type: object
+  types.OrderItemDetail:
+    properties:
+      create_time:
+        description: 创建时间
+        type: string
+      id:
+        description: 订单商品ID
+        type: integer
+      price:
+        description: 商品单价
+        type: integer
+      product_id:
+        description: 商品ID
+        type: integer
+      product_name:
+        description: 商品名称
+        type: string
+      quantity:
+        description: 商品数量
+        type: integer
+      total_price:
+        description: 商品总价
+        type: integer
+      update_time:
+        description: 更新时间
+        type: string
+    type: object
   types.OrderItemInfo:
     properties:
       price:
@@ -49,6 +220,24 @@ definitions:
         type: string
       quantity:
         type: integer
+    type: object
+  types.OrderStatusLogDetail:
+    properties:
+      create_time:
+        description: 变更时间
+        type: string
+      current_status:
+        description: 当前状态
+        type: integer
+      id:
+        description: 日志ID
+        type: integer
+      remark:
+        description: 备注
+        type: string
+      status_name:
+        description: 状态名称
+        type: string
     type: object
 info:
   contact: {}
@@ -80,6 +269,152 @@ paths:
           schema:
             $ref: '#/definitions/api.Response'
       summary: 创建订单
+      tags:
+      - Order
+  /customer/detail/{order_no}:
+    get:
+      consumes:
+      - application/json
+      description: 根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_no
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.OrderDetail'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: 用户侧查询订单详情
+      tags:
+      - Order
+  /customer/list:
+    post:
+      consumes:
+      - application/json
+      description: 根据userID查询订单列表，支持分页，支持根据时间筛选
+      parameters:
+      - description: 查询条件
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.CustomerListOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListOrderResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: 用户侧查询订单列表
+      tags:
+      - Order
+  /merchant/detail/{order_no}:
+    get:
+      consumes:
+      - application/json
+      description: 根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_no
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.OrderDetail'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: 查询订单详情
+      tags:
+      - Order
+  /merchant/list:
+    post:
+      consumes:
+      - application/json
+      description: 根据条件查询订单列表，支持分页
+      parameters:
+      - description: 查询条件
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.ListOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListOrderResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: 查询订单列表
       tags:
       - Order
 swagger: "2.0"

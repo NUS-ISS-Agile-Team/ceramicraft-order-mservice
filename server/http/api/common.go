@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	SUCCESS = 200
+	SUCCESS = 0
 	ERROR   = 500
 )
 

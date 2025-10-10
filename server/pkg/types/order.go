@@ -120,3 +120,10 @@ type OrderStatusLogDetail struct {
     Remark        string    `json:"remark"`         // 备注
     CreateTime    time.Time `json:"create_time"`    // 变更时间
 }
+
+type CustomerListOrderRequest struct {
+	StartTime   time.Time `json:"start_time"`   // 创建时间开始范围
+	EndTime     time.Time `json:"end_time"`     // 创建时间结束范围
+	Limit       int       `json:"limit"`        // 分页限制
+	Offset      int       `json:"offset"`       // 分页偏移
+}
