@@ -11,6 +11,7 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/grpc"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/http"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/log"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/metrics"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository"
 	userUtils "github.com/NUS-ISS-Agile-Team/ceramicraft-user-mservice/common/utils"
@@ -31,6 +32,7 @@ func main() {
 	userUtils.InitJwtSecret()
 	utils.InitKafka()
 	clients.InitAllClients(config.Config)
+	metrics.RegisterMetrics()
 	go grpc.Init(sigCh)
 	go http.Init(sigCh)
 	go utils.GetReader().ConsumeMessage(context.Background())
