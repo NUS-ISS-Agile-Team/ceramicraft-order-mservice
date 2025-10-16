@@ -19,12 +19,11 @@ const (
 func NewRouter() *gin.Engine {
 	r := gin.Default()
 
-	r.Use(metrics.MetricsMiddleware())
-
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
 	basicGroup := r.Group(serviceURIPrefix)
 	{
+		basicGroup.Use(metrics.MetricsMiddleware())
+		basicGroup.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 		basicGroup.GET("/swagger/*any", gs.WrapHandler(
 			swaggerFiles.Handler,
 			gs.URL("/order-ms/v1/swagger/doc.json"),
