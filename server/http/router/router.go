@@ -38,17 +38,17 @@ func NewRouter() *gin.Engine {
 		{
 			merchantGroup.Use(middleware.AuthMiddleware())
 			merchantGroup.POST("/list", api.ListOrders)
-			merchantGroup.GET("/detail/:order_no", api.GetOrderDetail)
-			merchantGroup.POST("/ship", api.ShipOrder)
+			merchantGroup.GET("/orders/:order_no", api.GetOrderDetail) // get order detail
+			merchantGroup.PATCH("/orders", api.ShipOrder) // ship order
 		}
 
 		customerGroup := basicGroup.Group("/customer")
 		{
 			customerGroup.Use(middleware.AuthMiddleware())
-			customerGroup.POST("/create", api.CreateOrder)
+			customerGroup.POST("/orders", api.CreateOrder) // create order
 			customerGroup.POST("/list", api.CustomerListOrders)
-			customerGroup.GET("/detail/:order_no", api.CustomerGetOrderDetail)
-			customerGroup.POST("/confirm", api.ConfirmOrder)
+			customerGroup.GET("/orders/:order_no", api.CustomerGetOrderDetail) // get order detail
+			customerGroup.PATCH("/orders", api.ConfirmOrder) // confirm order
 		}
 	}
 	return r
