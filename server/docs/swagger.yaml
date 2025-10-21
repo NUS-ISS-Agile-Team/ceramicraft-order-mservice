@@ -246,8 +246,6 @@ definitions:
     type: object
   types.ShipOrderRequest:
     properties:
-      order_no:
-        type: string
       tracking_no:
         type: string
     type: object
@@ -293,35 +291,6 @@ paths:
       tags:
       - Order
   /customer/orders:
-    patch:
-      consumes:
-      - application/json
-      description: 用户确认收到商品，订单状态变更为已收货
-      parameters:
-      - description: 确认收货信息
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/types.ConfirmOrderRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Response'
-      summary: 用户确认收货
-      tags:
-      - Order
     post:
       consumes:
       - application/json
@@ -385,6 +354,36 @@ paths:
       summary: 用户侧查询订单详情
       tags:
       - Order
+  /customer/orders/{order_no}/confirm:
+    patch:
+      consumes:
+      - application/json
+      description: 用户确认收到商品，订单状态变更为已收货
+      parameters:
+      - description: 确认收货信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.ConfirmOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: 用户确认收货
+      tags:
+      - Order
   /merchant/list:
     post:
       consumes:
@@ -418,36 +417,6 @@ paths:
           schema:
             $ref: '#/definitions/api.Response'
       summary: 查询订单列表
-      tags:
-      - Order
-  /merchant/orders:
-    patch:
-      consumes:
-      - application/json
-      description: 商家标记订单为已发货状态，并添加物流单号
-      parameters:
-      - description: 发货信息
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/types.ShipOrderRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Response'
-      summary: 商家发货
       tags:
       - Order
   /merchant/orders/{order_no}:
@@ -486,6 +455,36 @@ paths:
           schema:
             $ref: '#/definitions/api.Response'
       summary: 查询订单详情
+      tags:
+      - Order
+  /merchant/orders/{order_no}/ship:
+    patch:
+      consumes:
+      - application/json
+      description: 商家标记订单为已发货状态，并添加物流单号
+      parameters:
+      - description: 发货信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.ShipOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: 商家发货
       tags:
       - Order
 swagger: "2.0"
