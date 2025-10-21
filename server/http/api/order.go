@@ -46,7 +46,7 @@ func CreateOrder(ctx *gin.Context) {
 // @Success 200 {object} Response{data=types.ListOrderResponse}
 // @Failure 400 {object} Response
 // @Failure 500 {object} Response
-// @Router /merchant/list [post]
+// @Router /merchant/orders/list [post]
 func ListOrders(ctx *gin.Context) {
 	var req types.ListOrderRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -109,7 +109,7 @@ func GetOrderDetail(ctx *gin.Context) {
 // @Success 200 {object} Response{data=types.ListOrderResponse}
 // @Failure 400 {object} Response
 // @Failure 500 {object} Response
-// @Router /customer/list [post]
+// @Router /customer/orders/list [post]
 func CustomerListOrders(ctx *gin.Context) {
 	var req types.CustomerListOrderRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

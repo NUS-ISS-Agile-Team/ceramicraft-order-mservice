@@ -255,41 +255,6 @@ info:
   title: 订单服务 API
   version: "1.0"
 paths:
-  /customer/list:
-    post:
-      consumes:
-      - application/json
-      description: 根据userID查询订单列表，支持分页，支持根据时间筛选
-      parameters:
-      - description: 查询条件
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/types.CustomerListOrderRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/api.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/types.ListOrderResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/api.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.Response'
-      summary: 用户侧查询订单列表
-      tags:
-      - Order
   /customer/orders:
     post:
       consumes:
@@ -384,18 +349,18 @@ paths:
       summary: 用户确认收货
       tags:
       - Order
-  /merchant/list:
+  /customer/orders/list:
     post:
       consumes:
       - application/json
-      description: 根据条件查询订单列表，支持分页
+      description: 根据userID查询订单列表，支持分页，支持根据时间筛选
       parameters:
       - description: 查询条件
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/types.ListOrderRequest'
+          $ref: '#/definitions/types.CustomerListOrderRequest'
       produces:
       - application/json
       responses:
@@ -416,7 +381,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/api.Response'
-      summary: 查询订单列表
+      summary: 用户侧查询订单列表
       tags:
       - Order
   /merchant/orders/{order_no}:
@@ -485,6 +450,41 @@ paths:
           schema:
             $ref: '#/definitions/api.Response'
       summary: 商家发货
+      tags:
+      - Order
+  /merchant/orders/list:
+    post:
+      consumes:
+      - application/json
+      description: 根据条件查询订单列表，支持分页
+      parameters:
+      - description: 查询条件
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/types.ListOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/api.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/types.ListOrderResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: 查询订单列表
       tags:
       - Order
 swagger: "2.0"
