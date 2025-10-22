@@ -69,15 +69,16 @@ func closeKafkaWriter() {
 }
 
 func (myWriter *MyWriter) SendMsg(ctx context.Context, topic, key, value string) error {
-	err := myWriter.kafkaWriter.WriteMessages(ctx, kafka.Message{
-		Topic: topic, // 这里可以覆盖默认 topic
-		Key:   []byte(key),
-		Value: []byte(value),
-	})
-	if err != nil {
-		log.Logger.Errorf("SendMsg: failed, err %s", err.Error())
-		return err
-	}
+	go func() {
+		err := myWriter.kafkaWriter.WriteMessages(ctx, kafka.Message{
+			Topic: topic, // 这里可以覆盖默认 topic
+			Key:   []byte(key),
+			Value: []byte(value),
+		})
+		if err != nil {
+			log.Logger.Errorf("SendMsg: failed, err %s", err.Error())
+		}
+	}()
 	return nil
 }
 

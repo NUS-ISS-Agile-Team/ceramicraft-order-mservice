@@ -26,7 +26,7 @@ services:
       - ci-net
     ports:
       - "8080:8080"   # 只给宿主机（ZAP）用
-    command: ["sh", "-c", "apt-get update && apt-get install -y netcat-openbsd && chmod +x /app/wait-for.sh && ./wait-for.sh mysql-container 3306 ./main"]
+    command: ["sh", "-c", "apk add --no-cache netcat-openbsd && chmod +x /app/wait-for.sh && ./wait-for.sh mysql-container 3306 ./main"]
     volumes:
       - ./wait-for.sh:/app/wait-for.sh   # CI 专用配置
     user: root
