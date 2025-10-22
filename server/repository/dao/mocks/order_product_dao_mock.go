@@ -50,6 +50,21 @@ func (mr *MockOrderProductDaoMockRecorder) Create(ctx, orderProduct interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockOrderProductDao)(nil).Create), ctx, orderProduct)
 }
 
+// CreateBatch mocks base method.
+func (m *MockOrderProductDao) CreateBatch(ctx context.Context, products []model.OrderProduct) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBatch", ctx, products)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBatch indicates an expected call of CreateBatch.
+func (mr *MockOrderProductDaoMockRecorder) CreateBatch(ctx, products interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBatch", reflect.TypeOf((*MockOrderProductDao)(nil).CreateBatch), ctx, products)
+}
+
 // GetByOrderNo mocks base method.
 func (m *MockOrderProductDao) GetByOrderNo(ctx context.Context, orderNo string) ([]*model.OrderProduct, error) {
 	m.ctrl.T.Helper()
