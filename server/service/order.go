@@ -93,13 +93,14 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 
 	// 3. save order Info to database
 	// 3.1 save order Info
+	currentTime := time.Now()
 	_, err = o.orderDao.Create(ctx, &model.Order{
 		OrderNo:           orderId,
 		UserID:            userId,
 		Status:            consts.CREATED,
 		TotalAmount:       itemTotalAmount + shippingFee + tax,
-		CreateTime:        time.Now(),
-		UpdateTime:        time.Now(),
+		CreateTime:        currentTime,
+		UpdateTime:        currentTime,
 		ReceiverFirstName: orderInfo.ReceiverFirstName,
 		ReceiverLastName:  orderInfo.ReceiverLastName,
 		ReceiverPhone:     orderInfo.ReceiverPhone,
@@ -116,21 +117,27 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	}
 
 	// 3.2 save order items
-	for _, orderItem := range orderInfo.OrderItemList {
-		_, err := o.orderProductDao.Create(ctx, &model.OrderProduct{
+	orderProductModelList := make([]model.OrderProduct, len(orderInfo.OrderItemList))
+
+	// build model.orderProduct list
+	for idx, orderItem := range orderInfo.OrderItemList {
+		orderProductModelList[idx] = model.OrderProduct{
 			OrderNo:     orderId,
 			ProductID:   orderItem.ProductID,
 			ProductName: orderItem.ProductName,
 			Price:       orderItem.Price,
 			Quantity:    orderItem.Quantity,
 			TotalPrice:  (orderItem.Price * orderItem.Quantity),
-			CreateTime:  time.Now(),
-			UpdateTime:  time.Now(),
-		})
-		if err != nil {
-			log.Logger.Errorf("CreateOrder: create order item failed, err: %s", err.Error())
-			return "", err
+			CreateTime:  currentTime,
+			UpdateTime:  currentTime,
 		}
+	}
+
+	// save batch
+	_, err = o.orderProductDao.CreateBatch(ctx, orderProductModelList)
+	if err != nil {
+		log.Logger.Errorf("orderProductDao.CreateBatch: add order items failed, err %s", err.Error())
+		return "", err
 	}
 
 	orderMsg, err := getOrderMsg(orderId, orderInfo, userId)

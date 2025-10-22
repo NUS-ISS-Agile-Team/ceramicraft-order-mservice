@@ -40,7 +40,7 @@ jobs:
         - name: Build and run Docker Compose
           run: |
             docker compose -f .github/ci/docker-compose.yml --env-file env-file up --build -d
-            timeout 180 bash -c 'until [ "$(docker compose -f .github/ci/docker-compose.yml ps ceramicraft-order-mservice --format json | jq -r .Health)" = "healthy" ]; do sleep 2; done'
+            timeout 180 bash -c 'until curl -f http://localhost:8080/order-ms/v1/ping; do sleep 2; done'
         - name: Check Docker Compose Logs
           if: failure()
           run: |

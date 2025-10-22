@@ -82,9 +82,9 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 		Return("test-order-123", nil).
 		Times(1)
 
-	// Mock order product DAO - successful creation
+	// Mock order product DAO - successful batch creation
 	mockOrderProductDao.EXPECT().
-		Create(ctx, gomock.Any()).
+		CreateBatch(ctx, gomock.Any()).
 		Return(1, nil).
 		Times(1)
 
@@ -628,9 +628,9 @@ func TestOrderServiceImpl_CreateOrder_OrderProductDaoCreateError(t *testing.T) {
 		Return("test-order-123", nil).
 		Times(1)
 
-	// Mock order product DAO - return error
+	// Mock order product DAO - batch creation returns error
 	mockOrderProductDao.EXPECT().
-		Create(ctx, gomock.Any()).
+		CreateBatch(ctx, gomock.Any()).
 		Return(0, errors.New("failed to create order product")).
 		Times(1)
 
@@ -706,9 +706,9 @@ func TestOrderServiceImpl_CreateOrder_KafkaOrderCreatedError(t *testing.T) {
 		Return("test-order-123", nil).
 		Times(1)
 
-	// Mock order product DAO - successful creation
+	// Mock order product DAO - successful batch creation
 	mockOrderProductDao.EXPECT().
-		Create(ctx, gomock.Any()).
+		CreateBatch(ctx, gomock.Any()).
 		Return(1, nil).
 		Times(1)
 
@@ -789,7 +789,7 @@ func TestOrderServiceImpl_CreateOrder_PaymentFailed(t *testing.T) {
 		Times(1)
 
 	mockOrderProductDao.EXPECT().
-		Create(ctx, gomock.Any()).
+		CreateBatch(ctx, gomock.Any()).
 		Return(1, nil).
 		Times(1)
 
