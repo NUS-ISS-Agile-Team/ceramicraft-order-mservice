@@ -421,7 +421,7 @@ func (o *OrderServiceImpl) CustomerGetOrderDetail(ctx context.Context, orderNo s
 		return nil, err
 	}
 	if orderInfo.UserID != userId {
-		wrongUserErr := errors.New("Invalid user ID")
+		wrongUserErr := errors.New("invalid user ID")
 		log.Logger.Errorf("CustomerGetOrderDetail: Invalid userID, err %s", wrongUserErr.Error())
 		return nil, wrongUserErr
 	}

@@ -42,7 +42,7 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.WithValue(context.Background(), userIdKey, 123) //nolint:SA1029
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -993,7 +993,7 @@ func TestOrderServiceImpl_CustomerGetOrderDetail_WrongUser(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
-	if err.Error() != "Invalid user ID" {
+	if err.Error() != "invalid user ID" {
 		t.Errorf("Expected 'Invalid user ID' error, got: %v", err)
 	}
 	if detail != nil {
@@ -1246,7 +1246,6 @@ func TestOrderServiceImpl_UpdateOrderStatus_DaoUpdateError(t *testing.T) {
 
 	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
 
-	
 	ctx := context.Background()
 	orderNo := "TEST005"
 	newStatus := int(consts.DELIVERED)
