@@ -1,5 +1,5 @@
 # Use the official Go image with version 1.24
-FROM golang:1.24.0
+FROM golang:1.24.0-alpine AS builder 
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -14,10 +14,12 @@ RUN go mod tidy
 COPY . .
 
 # Build the Go application
-RUN go build -ldflags="-s -w" -o main main.go
+RUN CGO_ENABLED=0 GOOS=linux \
+    go build -ldflags="-w -s" -o main main.go && \
+    go clean -cache -modcache
 
 # Create a non-root user and set permissions
-RUN useradd -m appuser && \
+RUN adduser -D -h /home/appuser appuser && \
     mkdir -p logs && \
     chown -R appuser:appuser config/ && \
     chown -R appuser:appuser logs/ && \
