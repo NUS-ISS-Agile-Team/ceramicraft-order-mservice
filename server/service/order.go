@@ -50,6 +50,11 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 }
 
 func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.OrderInfo) (orderNo string, err error) {
+	s0 := time.Now()
+	defer func() {
+		log.Logger.Infof("[CreateOrder] the whole func tooks %d ms", time.Since(s0).Milliseconds())
+	}()
+
 	userId := ctx.Value("userID").(int)
 	o.lock.Lock()
 	defer o.lock.Unlock()
@@ -61,6 +66,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 
 	// log.Logger.Infof("CreateOrder: orderItemIds = %v", orderItemIds)
 
+	s1 := time.Now()
 	// 1. rpc: call product service and check if all the related product's stock is enough
 	productList, err := o.productServiceClient.GetProductList(ctx, &productpb.GetProductListRequest{
 		Ids: orderItemIds,
@@ -69,6 +75,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		log.Logger.Errorf("CreateOrder: get product list failed, err: %s", err.Error())
 		return "", err
 	}
+	log.Logger.Infof("[CreateOrder] rpc GetProductList, tooks %d ms", time.Since(s1).Milliseconds())
 
 	productId2StockMap := make(map[int]int)
 	for _, product := range productList.Products {
@@ -91,6 +98,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	// 2. local func: gen order ID
 	orderId := utils.GenerateOrderID()
 
+	s2 := time.Now()
 	// 3. save order Info to database
 	// 3.1 save order Info
 	_, err = o.orderDao.Create(ctx, &model.Order{
@@ -114,7 +122,9 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		log.Logger.Errorf("CreateOrder: insert into db failed, err: %s", err.Error())
 		return "", err
 	}
+	log.Logger.Infof("[CreateOrder] DB save order, tooks %d ms", time.Since(s2).Milliseconds())
 
+	s3 := time.Now()
 	// 3.2 save order items
 	for _, orderItem := range orderInfo.OrderItemList {
 		_, err := o.orderProductDao.Create(ctx, &model.OrderProduct{
@@ -132,19 +142,24 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 			return "", err
 		}
 	}
+	log.Logger.Infof("[CreateOrder] DB save order items, tooks %d ms", time.Since(s3).Milliseconds())
 
 	orderMsg, err := getOrderMsg(orderId, orderInfo, userId)
 	if err != nil {
 		log.Logger.Errorf("getOrderMsg: json encode failed, err %s", err.Error())
 		return "", err
 	}
+
+	s4 := time.Now()
 	// 4. message queue: send msg -- order ID
 	err = o.messageWriter.SendMsg(ctx, "order_created", orderId, orderMsg)
 	if err != nil {
 		log.Logger.Errorf("CreateOrder: send message failed, err %s", err.Error())
 		return "", err
 	}
+	log.Logger.Infof("[CreateOrder] mq send message 001, tooks %d ms", time.Since(s4).Milliseconds())
 
+	s5 := time.Now()
 	oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created", 1)
 	if err != nil {
 		log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
@@ -153,7 +168,9 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	if err != nil {
 		log.Logger.Errorf("send message failed, err %s", err)
 	}
+	log.Logger.Infof("[CreateOrder] mq send message 002, tooks %d ms", time.Since(s5).Milliseconds())
 
+	s6 := time.Now()
 	// 5. rpc: call product service and decrease stock
 	for _, orderItem := range orderInfo.OrderItemList {
 		_, _ = o.productServiceClient.UpdateStockWithCAS(ctx, &productpb.UpdateStockWithCASRequest{
@@ -161,7 +178,9 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 			Deta: int64(-1 * orderItem.Quantity),
 		})
 	}
+	log.Logger.Infof("[CreateOrder] rpc decrease stock, tooks %d ms", time.Since(s6).Milliseconds())
 
+	s7 := time.Now()
 	// 6. rpc: call payment service and pay
 	// TODO
 	payResp, err := o.paymentServiceClient.PayOrder(ctx, &paymentpb.PayOrderRequest{
@@ -169,6 +188,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		Amount: int32(itemTotalAmount + shippingFee + tax),
 		BizId:  orderId,
 	})
+	log.Logger.Infof("[CreateOrder] rpc payorder, tooks %d ms", time.Since(s7).Milliseconds())
 
 	// 6.2 payment failed
 	if err != nil || payResp.Code != 0 {
@@ -184,13 +204,16 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		}
 	}
 
+	s8 := time.Now()
 	// 6.1 payment success: update order status
 	err = o.orderDao.UpdateStatusAndPayment(ctx, orderId, consts.PAYED, time.Now())
 	if err != nil {
 		log.Logger.Errorf("CreateOrder: update status failed, err %s", err.Error())
 		return "", err
 	}
+	log.Logger.Infof("[CreateOrder] DB UpdateStatusAndPayment, tooks %d ms", time.Since(s8).Milliseconds())
 
+	s9 := time.Now()
 	oscMsg, err = getOrderStatusChangedMsg(orderId, userId, "Created --> Paid", 2)
 	if err != nil {
 		log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
@@ -199,6 +222,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	if err != nil {
 		log.Logger.Errorf("send message failed, err %s", err)
 	}
+	log.Logger.Infof("[CreateOrder] mq send message 003, tooks %d ms", time.Since(s9).Milliseconds())
 
 	return orderId, nil
 }
