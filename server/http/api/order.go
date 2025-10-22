@@ -19,7 +19,7 @@ import (
 // @Param order body types.OrderInfo true "订单信息"
 // @Success 200 {object} Response
 // @Failure 500 {object} Response
-// @Router /customer/create [post]
+// @Router /customer/orders [post]
 func CreateOrder(ctx *gin.Context) {
 	var req types.OrderInfo
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -46,7 +46,7 @@ func CreateOrder(ctx *gin.Context) {
 // @Success 200 {object} Response{data=types.ListOrderResponse}
 // @Failure 400 {object} Response
 // @Failure 500 {object} Response
-// @Router /merchant/list [post]
+// @Router /merchant/orders/list [post]
 func ListOrders(ctx *gin.Context) {
 	var req types.ListOrderRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -82,7 +82,7 @@ func ListOrders(ctx *gin.Context) {
 // @Failure 400 {object} Response
 // @Failure 404 {object} Response
 // @Failure 500 {object} Response
-// @Router /merchant/detail/{order_no} [get]
+// @Router /merchant/orders/{order_no} [get]
 func GetOrderDetail(ctx *gin.Context) {
 	orderNo := ctx.Param("order_no")
 	if orderNo == "" {
@@ -109,7 +109,7 @@ func GetOrderDetail(ctx *gin.Context) {
 // @Success 200 {object} Response{data=types.ListOrderResponse}
 // @Failure 400 {object} Response
 // @Failure 500 {object} Response
-// @Router /customer/list [post]
+// @Router /customer/orders/list [post]
 func CustomerListOrders(ctx *gin.Context) {
 	var req types.CustomerListOrderRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -152,7 +152,7 @@ func CustomerListOrders(ctx *gin.Context) {
 // @Failure 400 {object} Response
 // @Failure 404 {object} Response
 // @Failure 500 {object} Response
-// @Router /customer/detail/{order_no} [get]
+// @Router /customer/orders/{order_no} [get]
 func CustomerGetOrderDetail(ctx *gin.Context) {
 	orderNo := ctx.Param("order_no")
 	if orderNo == "" {
@@ -180,16 +180,17 @@ func CustomerGetOrderDetail(ctx *gin.Context) {
 // @Success 200 {object} Response
 // @Failure 400 {object} Response
 // @Failure 500 {object} Response
-// @Router /merchant/ship [post]
+// @Router /merchant/orders/{order_no}/ship [patch]
 func ShipOrder(ctx *gin.Context) {
-	var req types.ShipOrderRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, RespError(ctx, err))
+	orderNo := ctx.Param("order_no")
+	if orderNo == "" {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, errors.New("订单号不能为空")))
 		return
 	}
 
-	if req.OrderNo == "" {
-		ctx.JSON(http.StatusBadRequest, RespError(ctx, errors.New("订单号不能为空")))
+	var req types.ShipOrderRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, RespError(ctx, err))
 		return
 	}
 
@@ -199,7 +200,7 @@ func ShipOrder(ctx *gin.Context) {
 	}
 
 	// 调用 service 层更新订单状态为已发货
-	err := service.GetOrderServiceInstance().UpdateOrderStatus(ctx, req.OrderNo, consts.SHIPPED, req.TrackingNo) // 3 表示 SHIPPED
+	err := service.GetOrderServiceInstance().UpdateOrderStatus(ctx, orderNo, consts.SHIPPED, req.TrackingNo) // 3 表示 SHIPPED
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
 		return
@@ -218,21 +219,16 @@ func ShipOrder(ctx *gin.Context) {
 // @Success 200 {object} Response
 // @Failure 400 {object} Response
 // @Failure 500 {object} Response
-// @Router /customer/confirm [post]
+// @Router /customer/orders/{order_no}/confirm [patch]
 func ConfirmOrder(ctx *gin.Context) {
-	var req types.ConfirmOrderRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, RespError(ctx, err))
-		return
-	}
-
-	if req.OrderNo == "" {
+	orderNo := ctx.Param("order_no")
+	if orderNo == "" {
 		ctx.JSON(http.StatusBadRequest, RespError(ctx, errors.New("订单号不能为空")))
 		return
 	}
 
 	// 调用 service 层更新订单状态为已收货
-	err := service.GetOrderServiceInstance().UpdateOrderStatus(ctx, req.OrderNo, consts.DELIVERED, "")
+	err := service.GetOrderServiceInstance().UpdateOrderStatus(ctx, orderNo, consts.DELIVERED, "")
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
 		return

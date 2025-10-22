@@ -129,7 +129,6 @@ type CustomerListOrderRequest struct {
 }
 
 type ShipOrderRequest struct {
-	OrderNo    string `json:"order_no"`
 	TrackingNo string `json:"tracking_no"`
 }
 

@@ -8,53 +8,7 @@
     },
     "basePath": "/order-ms/v1",
     "paths": {
-        "/customer/confirm": {
-            "post": {
-                "description": "用户确认收到商品，订单状态变更为已收货",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Order"
-                ],
-                "summary": "用户确认收货",
-                "parameters": [
-                    {
-                        "description": "确认收货信息",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/types.ConfirmOrderRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api.Response"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/customer/create": {
+        "/customer/orders": {
             "post": {
                 "description": "创建一个新订单",
                 "consumes": [
@@ -94,7 +48,65 @@
                 }
             }
         },
-        "/customer/detail/{order_no}": {
+        "/customer/orders/list": {
+            "post": {
+                "description": "根据userID查询订单列表，支持分页，支持根据时间筛选",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "用户侧查询订单列表",
+                "parameters": [
+                    {
+                        "description": "查询条件",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.CustomerListOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/api.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/types.ListOrderResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/customer/orders/{order_no}": {
             "get": {
                 "description": "根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志",
                 "consumes": [
@@ -156,9 +168,9 @@
                 }
             }
         },
-        "/customer/list": {
-            "post": {
-                "description": "根据userID查询订单列表，支持分页，支持根据时间筛选",
+        "/customer/orders/{order_no}/confirm": {
+            "patch": {
+                "description": "用户确认收到商品，订单状态变更为已收货",
                 "consumes": [
                     "application/json"
                 ],
@@ -168,7 +180,53 @@
                 "tags": [
                     "Order"
                 ],
-                "summary": "用户侧查询订单列表",
+                "summary": "用户确认收货",
+                "parameters": [
+                    {
+                        "description": "确认收货信息",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/types.ConfirmOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/merchant/orders/list": {
+            "post": {
+                "description": "根据条件查询订单列表，支持分页",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "查询订单列表",
                 "parameters": [
                     {
                         "description": "查询条件",
@@ -176,7 +234,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/types.CustomerListOrderRequest"
+                            "$ref": "#/definitions/types.ListOrderRequest"
                         }
                     }
                 ],
@@ -214,7 +272,7 @@
                 }
             }
         },
-        "/merchant/detail/{order_no}": {
+        "/merchant/orders/{order_no}": {
             "get": {
                 "description": "根据订单号查询订单详情，包括订单基本信息、商品列表和状态日志",
                 "consumes": [
@@ -276,66 +334,8 @@
                 }
             }
         },
-        "/merchant/list": {
-            "post": {
-                "description": "根据条件查询订单列表，支持分页",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Order"
-                ],
-                "summary": "查询订单列表",
-                "parameters": [
-                    {
-                        "description": "查询条件",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/types.ListOrderRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/api.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/types.ListOrderResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/api.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/api.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/merchant/ship": {
-            "post": {
+        "/merchant/orders/{order_no}/ship": {
+            "patch": {
                 "description": "商家标记订单为已发货状态，并添加物流单号",
                 "consumes": [
                     "application/json"
@@ -727,9 +727,6 @@
         "types.ShipOrderRequest": {
             "type": "object",
             "properties": {
-                "order_no": {
-                    "type": "string"
-                },
                 "tracking_no": {
                     "type": "string"
                 }
