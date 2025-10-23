@@ -51,8 +51,8 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 
 func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.OrderInfo) (orderNo string, err error) {
 	userId := ctx.Value("userID").(int)
-	o.lock.Lock()
-	defer o.lock.Unlock()
+	// o.lock.Lock()
+	// defer o.lock.Unlock()
 
 	orderItemIds := make([]int64, len(orderInfo.OrderItemList))
 	for idx, item := range orderInfo.OrderItemList {
