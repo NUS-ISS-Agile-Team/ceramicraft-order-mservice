@@ -28,7 +28,6 @@ func init() {
 	log.Logger = logger.Sugar()
 }
 
-
 func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1245,7 +1244,6 @@ func TestOrderServiceImpl_UpdateOrderStatus_DaoUpdateError(t *testing.T) {
 
 	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
 
-	
 	ctx := context.Background()
 	orderNo := "TEST005"
 	newStatus := int(consts.DELIVERED)
