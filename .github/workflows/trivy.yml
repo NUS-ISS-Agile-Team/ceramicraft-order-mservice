@@ -1,0 +1,34 @@
+name: Build & Trivy Scan
+on:
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: |
+          docker build -t "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.sha }}" server/
+
+      # scan and block if high severity vulnerabilities found
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ env.DOCKER_HUB_USERNAME }}/ceramicraft-order-mservice:${{ github.sha }}"
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'          # non zero exit code if vulnerabilities found
+          ignore-unfixed: true    # ignore unfixed vulnerabilities
