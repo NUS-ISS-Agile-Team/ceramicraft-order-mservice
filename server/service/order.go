@@ -19,7 +19,7 @@ import (
 )
 
 type OrderService interface {
-	CreateOrder(ctx context.Context, orderInfo types.OrderInfo) (orderNo string, err error)
+	CreateOrder(ctx context.Context, orderInfo types.OrderInfo, userID int) (orderNo string, err error)
 	ListOrders(ctx context.Context, req types.ListOrderRequest) (resp *types.ListOrderResponse, err error)
 	GetOrderDetail(ctx context.Context, orderNo string) (detail *types.OrderDetail, err error)
 	CustomerGetOrderDetail(ctx context.Context, orderNo string, userID int) (detail *types.OrderDetail, err error)
@@ -49,8 +49,7 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 	}
 }
 
-func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.OrderInfo) (orderNo string, err error) {
-	userId := ctx.Value("userID").(int)
+func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.OrderInfo, userID int) (orderNo string, err error) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
@@ -96,7 +95,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	currentTime := time.Now()
 	_, err = o.orderDao.Create(ctx, &model.Order{
 		OrderNo:           orderId,
-		UserID:            userId,
+		UserID:            userID,
 		Status:            consts.CREATED,
 		TotalAmount:       itemTotalAmount + shippingFee + tax,
 		CreateTime:        currentTime,
@@ -140,7 +139,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 
-	orderMsg, err := getOrderMsg(orderId, orderInfo, userId)
+	orderMsg, err := getOrderMsg(orderId, orderInfo, userID)
 	if err != nil {
 		log.Logger.Errorf("getOrderMsg: json encode failed, err %s", err.Error())
 		return "", err
@@ -152,7 +151,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 
-	oscMsg, err := getOrderStatusChangedMsg(orderId, userId, "Created", 1)
+	oscMsg, err := getOrderStatusChangedMsg(orderId, userID, "Created", 1)
 	if err != nil {
 		log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
 	}
@@ -172,7 +171,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 	// 6. rpc: call payment service and pay
 	// TODO
 	payResp, err := o.paymentServiceClient.PayOrder(ctx, &paymentpb.PayOrderRequest{
-		UserId: int32(userId),
+		UserId: int32(userID),
 		Amount: int32(itemTotalAmount + shippingFee + tax),
 		BizId:  orderId,
 	})
@@ -198,7 +197,7 @@ func (o *OrderServiceImpl) CreateOrder(ctx context.Context, orderInfo types.Orde
 		return "", err
 	}
 
-	oscMsg, err = getOrderStatusChangedMsg(orderId, userId, "Created --> Paid", 2)
+	oscMsg, err = getOrderStatusChangedMsg(orderId, userID, "Created --> Paid", 2)
 	if err != nil {
 		log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
 	}

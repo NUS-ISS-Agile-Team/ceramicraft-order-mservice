@@ -26,8 +26,8 @@ func CreateOrder(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, RespError(ctx, err))
 		return
 	}
-
-	orderNo, err := service.GetOrderServiceInstance().CreateOrder(ctx, req)
+	userId := ctx.Value("userID").(int)
+	orderNo, err := service.GetOrderServiceInstance().CreateOrder(ctx, req, userId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
 		return
