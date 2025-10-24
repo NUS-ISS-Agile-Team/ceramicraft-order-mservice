@@ -992,8 +992,8 @@ func TestOrderServiceImpl_CustomerGetOrderDetail_WrongUser(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
-	if err.Error() != "Invalid user ID" {
-		t.Errorf("Expected 'Invalid user ID' error, got: %v", err)
+	if err.Error() != "invalid user ID" {
+		t.Errorf("Expected 'invalid user ID' error, got: %v", err)
 	}
 	if detail != nil {
 		t.Errorf("Expected nil detail, got: %v", detail)
