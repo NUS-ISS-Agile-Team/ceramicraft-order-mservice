@@ -28,7 +28,6 @@ func init() {
 	log.Logger = logger.Sugar()
 }
 
-const userIdKey = "userID"
 
 func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -42,7 +41,7 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.TODO()
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -138,7 +137,7 @@ func TestOrderServiceImpl_CreateOrder_Success(t *testing.T) {
 	}
 
 	// Now we can actually test the CreateOrder method
-	orderNo, err := service.CreateOrder(ctx, orderInfo)
+	orderNo, err := service.CreateOrder(ctx, orderInfo, 123)
 	if err != nil {
 		t.Errorf("Expected no error, got: %s", err.Error())
 	}
@@ -159,7 +158,7 @@ func TestOrderServiceImpl_CreateOrder_GetProductListError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.TODO()
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -197,7 +196,7 @@ func TestOrderServiceImpl_CreateOrder_GetProductListError(t *testing.T) {
 	}
 
 	// Test the CreateOrder method
-	orderNo, err := service.CreateOrder(ctx, orderInfo)
+	orderNo, err := service.CreateOrder(ctx, orderInfo, 123)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -218,7 +217,7 @@ func TestOrderServiceImpl_CreateOrder_InsufficientStock(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data with high quantity
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.TODO()
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -263,7 +262,7 @@ func TestOrderServiceImpl_CreateOrder_InsufficientStock(t *testing.T) {
 	}
 
 	// Test the CreateOrder method
-	orderNo, err := service.CreateOrder(ctx, orderInfo)
+	orderNo, err := service.CreateOrder(ctx, orderInfo, 123)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -284,7 +283,7 @@ func TestOrderServiceImpl_CreateOrder_OrderDaoCreateError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.TODO()
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -335,7 +334,7 @@ func TestOrderServiceImpl_CreateOrder_OrderDaoCreateError(t *testing.T) {
 	}
 
 	// Test the CreateOrder method
-	orderNo, err := service.CreateOrder(ctx, orderInfo)
+	orderNo, err := service.CreateOrder(ctx, orderInfo, 123)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -588,7 +587,7 @@ func TestOrderServiceImpl_CreateOrder_OrderProductDaoCreateError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.TODO()
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -645,7 +644,7 @@ func TestOrderServiceImpl_CreateOrder_OrderProductDaoCreateError(t *testing.T) {
 	}
 
 	// Test the CreateOrder method
-	orderNo, err := service.CreateOrder(ctx, orderInfo)
+	orderNo, err := service.CreateOrder(ctx, orderInfo, 123)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -666,7 +665,7 @@ func TestOrderServiceImpl_CreateOrder_KafkaOrderCreatedError(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.TODO()
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -729,7 +728,7 @@ func TestOrderServiceImpl_CreateOrder_KafkaOrderCreatedError(t *testing.T) {
 	}
 
 	// Test the CreateOrder method
-	orderNo, err := service.CreateOrder(ctx, orderInfo)
+	orderNo, err := service.CreateOrder(ctx, orderInfo, 123)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -750,7 +749,7 @@ func TestOrderServiceImpl_CreateOrder_PaymentFailed(t *testing.T) {
 	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
 
 	// Setup test data
-	ctx := context.WithValue(context.Background(), userIdKey, 123)
+	ctx := context.TODO()
 	orderInfo := types.OrderInfo{
 		ReceiverFirstName: "John",
 		ReceiverLastName:  "Doe",
@@ -837,7 +836,7 @@ func TestOrderServiceImpl_CreateOrder_PaymentFailed(t *testing.T) {
 	}
 
 	// Test the CreateOrder method
-	orderNo, err := service.CreateOrder(ctx, orderInfo)
+	orderNo, err := service.CreateOrder(ctx, orderInfo, 123)
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
