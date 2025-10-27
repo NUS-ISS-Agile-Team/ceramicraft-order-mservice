@@ -143,19 +143,21 @@ func (d *OrderDaoImpl) AutoConfirmShippedOrders(ctx context.Context, shippedStat
 	}
 
 	// 3. 提取订单号列表
-	orderNos = make([]types.OrderNoAndUserId, 0, len(orders))
+	orderNosAndUserIDs := make([]types.OrderNoAndUserId, 0, len(orders))
+	orderNo := make([]string, 0, len(orders))
 	for _, order := range orders {
-		orderNos = append(orderNos, types.OrderNoAndUserId{
+		orderNosAndUserIDs = append(orderNosAndUserIDs, types.OrderNoAndUserId{
 			OrderNo: order.OrderNo,
 			UserID:  order.UserID,
 		})
+		orderNo = append(orderNo, order.OrderNo)
 	}
 
 	// 4. 批量更新订单状态
 	now := time.Now()
 	err = d.db.WithContext(ctx).
 		Model(&model.Order{}).
-		Where("order_no IN ?", orderNos).
+		Where("order_no IN ?", orderNo).
 		Updates(map[string]interface{}{
 			"status":       deliveredStatus,
 			"confirm_time": now,
@@ -164,5 +166,5 @@ func (d *OrderDaoImpl) AutoConfirmShippedOrders(ctx context.Context, shippedStat
 		return nil, err
 	}
 
-	return orderNos, nil
+	return orderNosAndUserIDs, nil
 }

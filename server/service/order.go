@@ -53,7 +53,7 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 
 const (
 	AUTO_CONFIRM_LOCK_KEY   = "order:auto_confirm:lock"
-	LOCK_EXP_TIME           = 100 * time.Second
+	LOCK_EXP_TIME           = 10 * time.Second
 	AUTO_CONFIRM_AFTER_DAYS = 7
 )
 
