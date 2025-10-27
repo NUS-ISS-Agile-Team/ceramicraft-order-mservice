@@ -135,3 +135,8 @@ type ShipOrderRequest struct {
 type ConfirmOrderRequest struct {
 	OrderNo string `json:"order_no"`
 }
+
+type OrderNoAndUserId struct {
+	OrderNo string `json:"order_no"`
+	UserID  int    `json:"user_id"`
+}

@@ -16,6 +16,12 @@ type Conf struct {
 	CommodityClient *CommodityClient `mapstructure:"commodityClient"`
 	PaymentClient   *PaymentClient   `mapstruct:"paymentClient"`
 	KafkaConfig     *KafkaConfig     `mapstructure:"kafka"`
+	RedisConfig     *RedisConfig     `mapstructure:"redis"`
+}
+
+type RedisConfig struct {
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
 }
 
 type HttpConfig struct {
