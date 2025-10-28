@@ -16,6 +16,7 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common/paymentpb"
+	"github.com/google/uuid"
 )
 
 type OrderService interface {
@@ -24,6 +25,7 @@ type OrderService interface {
 	GetOrderDetail(ctx context.Context, orderNo string) (detail *types.OrderDetail, err error)
 	CustomerGetOrderDetail(ctx context.Context, orderNo string, userID int) (detail *types.OrderDetail, err error)
 	UpdateOrderStatus(ctx context.Context, orderNo string, newStatus int) (err error)
+	OrderAutoConfirm(ctx context.Context)
 }
 
 type OrderServiceImpl struct {
@@ -34,6 +36,7 @@ type OrderServiceImpl struct {
 	productServiceClient productpb.ProductServiceClient
 	paymentServiceClient paymentpb.PaymentServiceClient
 	messageWriter        utils.Writer
+	distributedLocker    utils.Locker
 	syncMode             bool
 }
 
@@ -45,7 +48,54 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 		productServiceClient: clients.GetProductClient(),
 		paymentServiceClient: clients.GetPaymentClient(),
 		messageWriter:        utils.GetWriter(),
+		distributedLocker:    utils.GetDistributedLock(AUTO_CONFIRM_LOCK_KEY, uuid.New().String(), LOCK_EXP_TIME),
 		syncMode:             false,
+	}
+}
+
+const (
+	AUTO_CONFIRM_LOCK_KEY   = "order:auto_confirm:lock"
+	LOCK_EXP_TIME           = 10 * time.Second
+	AUTO_CONFIRM_AFTER_DAYS = 7
+)
+
+func (o *OrderServiceImpl) OrderAutoConfirm(ctx context.Context) {
+	log.Logger.Infof("Auto Confirm Order at: %v", time.Now())
+	// 1. lock
+	lock := o.distributedLocker
+
+	err := lock.Lock(ctx)
+	if err != nil {
+		// 获取锁失败（其他实例正在处理），直接返回，等下一轮
+		log.Logger.Info("OrderAutoConfirm: failed to acquire lock, skipping this round")
+		return
+	}
+
+	defer func() {
+		if unlockErr := lock.Unlock(ctx); unlockErr != nil {
+			log.Logger.Errorf("OrderAutoConfirm: failed to release lock, err: %s", unlockErr.Error())
+		}
+	}()
+
+	// 2. update by status and shipped time
+	list, err := o.orderDao.AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS)
+	if err != nil {
+		log.Logger.Info("OrderAutoConfirm: failed to update order status, err: %s", err.Error())
+		return
+	}
+
+	// 3. send message to mq (insert order logs)
+	for _, order := range list {
+		statusChangeRemark := "Shipped --> AutoConfirmed"
+		oscMsg, err := getOrderStatusChangedMsg(order.OrderNo, order.UserID, statusChangeRemark, consts.DELIVERED)
+		if err != nil {
+			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+			continue
+		}
+		err = o.messageWriter.SendMsg(ctx, "order_status_changed", order.OrderNo, oscMsg)
+		if err != nil {
+			log.Logger.Errorf("send message failed, err %s", err)
+		}
 	}
 }
 

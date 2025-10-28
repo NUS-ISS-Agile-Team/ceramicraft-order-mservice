@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/config"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao/redis"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -25,7 +26,7 @@ type TxBeginner interface {
 
 var _ TxBeginner = (*gorm.DB)(nil) // Compile-time interface check
 
-func Init() {
+func mysqlInit() {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		config.Config.MySQLConfig.UserName,
 		config.Config.MySQLConfig.Password,
@@ -50,4 +51,9 @@ func Init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func Init() {
+	mysqlInit()
+	redis.Init()
 }

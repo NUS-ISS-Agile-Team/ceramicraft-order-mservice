@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/types"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
 	"gorm.io/gorm"
@@ -17,6 +18,7 @@ type OrderDao interface {
 	GetByOrderQuery(ctx context.Context, query OrderQuery) (oList []*model.Order, err error)
 	UpdateStatusAndConfirmTime(ctx context.Context, orderNo string, status int, t time.Time) (err error)
 	UpdateStatusWithDeliveryInfo(ctx context.Context, orderNo string, status int, t time.Time, shippingNo string) (err error)
+	AutoConfirmShippedOrders(ctx context.Context, shippedStatus int, deliveredStatus int, daysThreshold int) (orderNos []types.OrderNoAndUserId, err error)
 }
 
 var (
@@ -67,9 +69,9 @@ func (d *OrderDaoImpl) UpdateStatusWithDeliveryInfo(ctx context.Context, orderNo
 		Model(&model.Order{}).
 		Where("order_no = ?", orderNo).
 		Updates(map[string]interface{}{
-			"status":       status,
+			"status":        status,
 			"delivery_time": t,
-			"logistics_no": shippingNo,
+			"logistics_no":  shippingNo,
 		}).Error
 }
 
@@ -114,4 +116,55 @@ func (d *OrderDaoImpl) GetByOrderQuery(ctx context.Context, query OrderQuery) (o
 
 	err = db.Find(&oList).Error
 	return
+}
+
+// AutoConfirmShippedOrders 自动确认已发货超过指定天数的订单
+// 查询 status = shippedStatus 且 delivery_time 距离当前时间大于 daysThreshold 天的订单
+// 将它们的状态更新为 deliveredStatus，并返回更新成功的订单号列表
+func (d *OrderDaoImpl) AutoConfirmShippedOrders(ctx context.Context, shippedStatus int, deliveredStatus int, daysThreshold int) (orderNos []types.OrderNoAndUserId, err error) {
+	// 1. 计算截止时间：当前时间 - daysThreshold 天
+	thresholdTime := time.Now().Add(-time.Duration(daysThreshold) * 24 * time.Hour)
+
+	// 2. 查询符合条件的订单
+	var orders []*model.Order
+	err = d.db.WithContext(ctx).
+		Model(&model.Order{}).
+		Where("status = ?", shippedStatus).
+		Where("delivery_time IS NOT NULL").
+		Where("delivery_time <= ?", thresholdTime).
+		Find(&orders).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果没有订单需要确认，直接返回
+	if len(orders) == 0 {
+		return nil, nil
+	}
+
+	// 3. 提取订单号列表
+	orderNosAndUserIDs := make([]types.OrderNoAndUserId, 0, len(orders))
+	orderNo := make([]string, 0, len(orders))
+	for _, order := range orders {
+		orderNosAndUserIDs = append(orderNosAndUserIDs, types.OrderNoAndUserId{
+			OrderNo: order.OrderNo,
+			UserID:  order.UserID,
+		})
+		orderNo = append(orderNo, order.OrderNo)
+	}
+
+	// 4. 批量更新订单状态
+	now := time.Now()
+	err = d.db.WithContext(ctx).
+		Model(&model.Order{}).
+		Where("order_no IN ?", orderNo).
+		Updates(map[string]interface{}{
+			"status":       deliveredStatus,
+			"confirm_time": now,
+		}).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return orderNosAndUserIDs, nil
 }

@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 	time "time"
 
+	types "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/types"
 	dao "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao"
 	model "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
 	gomock "github.com/golang/mock/gomock"
@@ -35,6 +36,21 @@ func NewMockOrderDao(ctrl *gomock.Controller) *MockOrderDao {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockOrderDao) EXPECT() *MockOrderDaoMockRecorder {
 	return m.recorder
+}
+
+// AutoConfirmShippedOrders mocks base method.
+func (m *MockOrderDao) AutoConfirmShippedOrders(ctx context.Context, shippedStatus, deliveredStatus, daysThreshold int) ([]types.OrderNoAndUserId, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AutoConfirmShippedOrders", ctx, shippedStatus, deliveredStatus, daysThreshold)
+	ret0, _ := ret[0].([]types.OrderNoAndUserId)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AutoConfirmShippedOrders indicates an expected call of AutoConfirmShippedOrders.
+func (mr *MockOrderDaoMockRecorder) AutoConfirmShippedOrders(ctx, shippedStatus, deliveredStatus, daysThreshold interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AutoConfirmShippedOrders", reflect.TypeOf((*MockOrderDao)(nil).AutoConfirmShippedOrders), ctx, shippedStatus, deliveredStatus, daysThreshold)
 }
 
 // Create mocks base method.

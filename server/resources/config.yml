@@ -29,3 +29,7 @@ paymentClient:
 kafka:
   host: "kafka-container"
   port: 9092
+
+redis:
+  host: "redis-container"
+  port: 6379
