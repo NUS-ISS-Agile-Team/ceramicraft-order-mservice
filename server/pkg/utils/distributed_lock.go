@@ -9,25 +9,15 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
+// mockgen -source=./distributed_lock.go -destination=./mocks/distributed_lock_mock.go -package=mocks
+
 // Locker defines the interface for distributed lock operations
 type Locker interface {
 	// Lock attempts to acquire the distributed lock
 	Lock(ctx context.Context) error
 
-	// TryLock attempts to acquire the lock with retry logic
-	TryLock(ctx context.Context, maxRetries int, retryDelay time.Duration) error
-
 	// Unlock releases the distributed lock
 	Unlock(ctx context.Context) error
-
-	// Refresh extends the lock expiration time
-	Refresh(ctx context.Context) error
-
-	// IsLocked checks if the lock is currently held (by any instance)
-	IsLocked(ctx context.Context) (bool, error)
-
-	// IsLockedByMe checks if the lock is held by this specific instance
-	IsLockedByMe(ctx context.Context) (bool, error)
 }
 
 // DistributedLock represents a Redis-based distributed lock
@@ -84,32 +74,6 @@ func (l *DistributedLock) Lock(ctx context.Context) error {
 	return nil
 }
 
-// TryLock attempts to acquire the lock with retry logic
-// maxRetries: maximum number of retry attempts
-// retryDelay: delay between retry attempts
-func (l *DistributedLock) TryLock(ctx context.Context, maxRetries int, retryDelay time.Duration) error {
-	for i := 0; i < maxRetries; i++ {
-		err := l.Lock(ctx)
-		if err == nil {
-			return nil
-		}
-
-		if err != ErrLockFailed {
-			return err
-		}
-
-		// Wait before retrying
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(retryDelay):
-			continue
-		}
-	}
-
-	return ErrLockFailed
-}
-
 // Unlock releases the distributed lock using Lua script
 // Only succeeds if the lock is held by this instance (value matches)
 func (l *DistributedLock) Unlock(ctx context.Context) error {
@@ -126,50 +90,4 @@ func (l *DistributedLock) Unlock(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// Refresh extends the lock expiration time
-// Useful for long-running operations that need to keep the lock
-func (l *DistributedLock) Refresh(ctx context.Context) error {
-	// Use Lua script to atomically check ownership and extend expiration
-	refreshScript := `
-if redis.call("get", KEYS[1]) == ARGV[1] then
-    return redis.call("expire", KEYS[1], ARGV[2])
-else
-    return 0
-end
-`
-	script := goredis.NewScript(refreshScript)
-	result, err := script.Run(ctx, redis.RedisClient, []string{l.key}, l.value, int(l.expiration.Seconds())).Result()
-	if err != nil {
-		return err
-	}
-
-	refreshed, ok := result.(int64)
-	if !ok || refreshed == 0 {
-		return ErrLockNotHeld
-	}
-
-	return nil
-}
-
-// IsLocked checks if the lock is currently held (by any instance)
-func (l *DistributedLock) IsLocked(ctx context.Context) (bool, error) {
-	result, err := redis.RedisClient.Exists(ctx, l.key).Result()
-	if err != nil {
-		return false, err
-	}
-	return result > 0, nil
-}
-
-// IsLockedByMe checks if the lock is held by this specific instance
-func (l *DistributedLock) IsLockedByMe(ctx context.Context) (bool, error) {
-	value, err := redis.RedisClient.Get(ctx, l.key).Result()
-	if err == goredis.Nil {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return value == l.value, nil
 }

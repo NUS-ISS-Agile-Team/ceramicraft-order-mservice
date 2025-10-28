@@ -13,6 +13,8 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/log"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/consts"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/types"
+
+	// "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils"
 	utilMocks "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils/mocks"
 	daoMocks "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao/mocks"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
@@ -1263,4 +1265,323 @@ func TestOrderServiceImpl_UpdateOrderStatus_DaoUpdateError(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error from DAO update, got nil")
 	}
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_Success tests successful auto-confirmation
+func TestOrderServiceImpl_OrderAutoConfirm_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition success
+	mockLocker.EXPECT().Lock(ctx).Return(nil).Times(1)
+	mockLocker.EXPECT().Unlock(ctx).Return(nil).Times(1)
+
+	// Mock DAO returns 2 orders to auto-confirm
+	autoConfirmedOrders := []types.OrderNoAndUserId{
+		{OrderNo: "ORDER001", UserID: 101},
+		{OrderNo: "ORDER002", UserID: 102},
+	}
+	mockOrderDao.EXPECT().
+		AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS).
+		Return(autoConfirmedOrders, nil).
+		Times(1)
+
+	// Mock Kafka messages for each order
+	mockKafkaWriter.EXPECT().
+		SendMsg(ctx, "order_status_changed", "ORDER001", gomock.Any()).
+		Return(nil).
+		Times(1)
+	mockKafkaWriter.EXPECT().
+		SendMsg(ctx, "order_status_changed", "ORDER002", gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	service := &OrderServiceImpl{
+		orderDao:          mockOrderDao,
+		messageWriter:     mockKafkaWriter,
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute
+	service.OrderAutoConfirm(ctx)
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_LockFailed tests lock acquisition failure
+func TestOrderServiceImpl_OrderAutoConfirm_LockFailed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition failure (another instance holds the lock)
+	mockLocker.EXPECT().Lock(ctx).Return(errors.New("lock already held")).Times(1)
+	// Unlock should NOT be called if lock acquisition fails
+	mockLocker.EXPECT().Unlock(ctx).Times(0)
+
+	service := &OrderServiceImpl{
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute - should return gracefully without error
+	service.OrderAutoConfirm(ctx)
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_DaoError tests DAO error during auto-confirm
+func TestOrderServiceImpl_OrderAutoConfirm_DaoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition success
+	mockLocker.EXPECT().Lock(ctx).Return(nil).Times(1)
+	mockLocker.EXPECT().Unlock(ctx).Return(nil).Times(1)
+
+	// Mock DAO returns error
+	mockOrderDao.EXPECT().
+		AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS).
+		Return(nil, errors.New("database connection failed")).
+		Times(1)
+
+	service := &OrderServiceImpl{
+		orderDao:          mockOrderDao,
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute - should handle error gracefully
+	service.OrderAutoConfirm(ctx)
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_NoOrders tests when no orders need auto-confirmation
+func TestOrderServiceImpl_OrderAutoConfirm_NoOrders(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition success
+	mockLocker.EXPECT().Lock(ctx).Return(nil).Times(1)
+	mockLocker.EXPECT().Unlock(ctx).Return(nil).Times(1)
+
+	// Mock DAO returns empty list
+	mockOrderDao.EXPECT().
+		AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS).
+		Return([]types.OrderNoAndUserId{}, nil).
+		Times(1)
+
+	// Kafka message should NOT be sent when no orders
+	mockKafkaWriter.EXPECT().SendMsg(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+
+	service := &OrderServiceImpl{
+		orderDao:          mockOrderDao,
+		messageWriter:     mockKafkaWriter,
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute
+	service.OrderAutoConfirm(ctx)
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_MessageSendError tests Kafka message send failure
+func TestOrderServiceImpl_OrderAutoConfirm_MessageSendError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition success
+	mockLocker.EXPECT().Lock(ctx).Return(nil).Times(1)
+	mockLocker.EXPECT().Unlock(ctx).Return(nil).Times(1)
+
+	// Mock DAO returns orders
+	autoConfirmedOrders := []types.OrderNoAndUserId{
+		{OrderNo: "ORDER001", UserID: 101},
+	}
+	mockOrderDao.EXPECT().
+		AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS).
+		Return(autoConfirmedOrders, nil).
+		Times(1)
+
+	// Mock Kafka message send fails
+	mockKafkaWriter.EXPECT().
+		SendMsg(ctx, "order_status_changed", "ORDER001", gomock.Any()).
+		Return(errors.New("kafka connection failed")).
+		Times(1)
+
+	service := &OrderServiceImpl{
+		orderDao:          mockOrderDao,
+		messageWriter:     mockKafkaWriter,
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute - should log error but continue
+	service.OrderAutoConfirm(ctx)
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_UnlockError tests unlock failure
+func TestOrderServiceImpl_OrderAutoConfirm_UnlockError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition success
+	mockLocker.EXPECT().Lock(ctx).Return(nil).Times(1)
+	// Mock unlock failure
+	mockLocker.EXPECT().Unlock(ctx).Return(errors.New("unlock failed")).Times(1)
+
+	// Mock DAO returns orders
+	autoConfirmedOrders := []types.OrderNoAndUserId{
+		{OrderNo: "ORDER001", UserID: 101},
+	}
+	mockOrderDao.EXPECT().
+		AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS).
+		Return(autoConfirmedOrders, nil).
+		Times(1)
+
+	// Mock Kafka message send success
+	mockKafkaWriter.EXPECT().
+		SendMsg(ctx, "order_status_changed", "ORDER001", gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	service := &OrderServiceImpl{
+		orderDao:          mockOrderDao,
+		messageWriter:     mockKafkaWriter,
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute - should log error but not panic
+	service.OrderAutoConfirm(ctx)
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_MultipleOrders tests auto-confirming multiple orders
+func TestOrderServiceImpl_OrderAutoConfirm_MultipleOrders(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition success
+	mockLocker.EXPECT().Lock(ctx).Return(nil).Times(1)
+	mockLocker.EXPECT().Unlock(ctx).Return(nil).Times(1)
+
+	// Mock DAO returns 5 orders to auto-confirm
+	autoConfirmedOrders := []types.OrderNoAndUserId{
+		{OrderNo: "ORDER001", UserID: 101},
+		{OrderNo: "ORDER002", UserID: 102},
+		{OrderNo: "ORDER003", UserID: 103},
+		{OrderNo: "ORDER004", UserID: 104},
+		{OrderNo: "ORDER005", UserID: 105},
+	}
+	mockOrderDao.EXPECT().
+		AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS).
+		Return(autoConfirmedOrders, nil).
+		Times(1)
+
+	// Mock Kafka messages for each order
+	for _, order := range autoConfirmedOrders {
+		mockKafkaWriter.EXPECT().
+			SendMsg(ctx, "order_status_changed", order.OrderNo, gomock.Any()).
+			Return(nil).
+			Times(1)
+	}
+
+	service := &OrderServiceImpl{
+		orderDao:          mockOrderDao,
+		messageWriter:     mockKafkaWriter,
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute
+	service.OrderAutoConfirm(ctx)
+}
+
+// TestOrderServiceImpl_OrderAutoConfirm_PartialMessageFailure tests when some Kafka messages fail
+func TestOrderServiceImpl_OrderAutoConfirm_PartialMessageFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOrderDao := daoMocks.NewMockOrderDao(ctrl)
+	mockLocker := utilMocks.NewMockLocker(ctrl)
+	mockKafkaWriter := utilMocks.NewMockWriter(ctrl)
+
+	ctx := context.Background()
+
+	// Mock lock acquisition success
+	mockLocker.EXPECT().Lock(ctx).Return(nil).Times(1)
+	mockLocker.EXPECT().Unlock(ctx).Return(nil).Times(1)
+
+	// Mock DAO returns 3 orders
+	autoConfirmedOrders := []types.OrderNoAndUserId{
+		{OrderNo: "ORDER001", UserID: 101},
+		{OrderNo: "ORDER002", UserID: 102},
+		{OrderNo: "ORDER003", UserID: 103},
+	}
+	mockOrderDao.EXPECT().
+		AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS).
+		Return(autoConfirmedOrders, nil).
+		Times(1)
+
+	// First message succeeds
+	mockKafkaWriter.EXPECT().
+		SendMsg(ctx, "order_status_changed", "ORDER001", gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	// Second message fails
+	mockKafkaWriter.EXPECT().
+		SendMsg(ctx, "order_status_changed", "ORDER002", gomock.Any()).
+		Return(errors.New("kafka timeout")).
+		Times(1)
+
+	// Third message succeeds
+	mockKafkaWriter.EXPECT().
+		SendMsg(ctx, "order_status_changed", "ORDER003", gomock.Any()).
+		Return(nil).
+		Times(1)
+
+	service := &OrderServiceImpl{
+		orderDao:          mockOrderDao,
+		messageWriter:     mockKafkaWriter,
+		distributedLocker: mockLocker,
+		syncMode:          true,
+	}
+
+	// Execute - should continue processing all orders despite one failure
+	service.OrderAutoConfirm(ctx)
 }

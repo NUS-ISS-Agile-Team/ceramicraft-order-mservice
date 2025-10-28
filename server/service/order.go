@@ -36,6 +36,7 @@ type OrderServiceImpl struct {
 	productServiceClient productpb.ProductServiceClient
 	paymentServiceClient paymentpb.PaymentServiceClient
 	messageWriter        utils.Writer
+	distributedLocker    utils.Locker
 	syncMode             bool
 }
 
@@ -47,6 +48,7 @@ func GetOrderServiceInstance() *OrderServiceImpl {
 		productServiceClient: clients.GetProductClient(),
 		paymentServiceClient: clients.GetPaymentClient(),
 		messageWriter:        utils.GetWriter(),
+		distributedLocker:    utils.GetDistributedLock(AUTO_CONFIRM_LOCK_KEY, uuid.New().String(), LOCK_EXP_TIME),
 		syncMode:             false,
 	}
 }
@@ -60,7 +62,7 @@ const (
 func (o *OrderServiceImpl) OrderAutoConfirm(ctx context.Context) {
 	log.Logger.Infof("Auto Confirm Order at: %v", time.Now())
 	// 1. lock
-	lock := utils.GetDistributedLock(AUTO_CONFIRM_LOCK_KEY, uuid.New().String(), LOCK_EXP_TIME)
+	lock := o.distributedLocker
 
 	err := lock.Lock(ctx)
 	if err != nil {
