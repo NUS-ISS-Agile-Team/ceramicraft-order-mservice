@@ -64,7 +64,7 @@ type KafkaConfig struct {
 	Port int    `mapstructure:"port"`
 }
 
-var UseLocalConfig = true
+var UseLocalConfig = false
 
 func Init() {
 	workDir, _ := os.Getwd()

@@ -58,6 +58,7 @@ const (
 )
 
 func (o *OrderServiceImpl) OrderAutoConfirm(ctx context.Context) {
+	log.Logger.Infof("Auto Confirm Order at: %v", time.Now())
 	// 1. lock
 	lock := utils.GetDistributedLock(AUTO_CONFIRM_LOCK_KEY, uuid.New().String(), LOCK_EXP_TIME)
 
@@ -77,7 +78,7 @@ func (o *OrderServiceImpl) OrderAutoConfirm(ctx context.Context) {
 	// 2. update by status and shipped time
 	list, err := o.orderDao.AutoConfirmShippedOrders(ctx, consts.SHIPPED, consts.DELIVERED, AUTO_CONFIRM_AFTER_DAYS)
 	if err != nil {
-		log.Logger.Info("OrderAutoConfirm: ")
+		log.Logger.Info("OrderAutoConfirm: failed to update order status, err: %s", err.Error())
 		return
 	}
 
@@ -87,6 +88,7 @@ func (o *OrderServiceImpl) OrderAutoConfirm(ctx context.Context) {
 		oscMsg, err := getOrderStatusChangedMsg(order.OrderNo, order.UserID, statusChangeRemark, consts.DELIVERED)
 		if err != nil {
 			log.Logger.Errorf("get order status changed msg failed, err %s", err.Error())
+			continue
 		}
 		err = o.messageWriter.SendMsg(ctx, "order_status_changed", order.OrderNo, oscMsg)
 		if err != nil {
