@@ -3,6 +3,14 @@ name: Deploy Go to EC2 (manual)
 on:
   workflow_dispatch:          # ← Manual trigger button
     inputs:
+      env_name:
+        description: 'env_name'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - prod
+          - dev
       version:
         description: 'version'
         required: false
@@ -16,7 +24,6 @@ on:
         options:
           - build
           - deploy
-          - swarm-deploy
           - restart
           - rollback
 
@@ -37,7 +44,7 @@ jobs:
           name: env-file
           path: env-file
   build:
-    if: ${{ github.event.inputs.command == 'deploy' }} || ${{ github.event.inputs.command == 'build' }} || ${{ github.event.inputs.command == 'swarm-deploy' }}
+    if: ${{ github.event.inputs.command == 'deploy' || github.event.inputs.command == 'build' }}
     runs-on: ubuntu-latest
     env:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
@@ -56,11 +63,12 @@ jobs:
         run: |
           docker push "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
   deploy:
-    if: ${{ github.event.inputs.command == 'deploy' }}
+    if: ${{ github.event.inputs.command == 'deploy' && github.event.inputs.env_name == 'dev' }}
     needs: 
         - build
         - generate-env
-    runs-on: self-hosted
+    runs-on: [self-hosted,dev,docker]
+    environment: dev
     env:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
     steps:
@@ -76,17 +84,38 @@ jobs:
         run: |
           docker stop ceramicraft-order-mservice || true
           docker rm ceramicraft-order-mservice || true
-          docker run -d --name ceramicraft-order-mservice -v /home/ubuntu/logs:/app/logs --network ceramicraft-network --env-file env-file "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+          docker run -d --name ceramicraft-order-mservice --network ceramicraft-network  -v /home/ubuntu/logs:/app/logs --env-file env-file "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+  swarm-deploy:
+    if: ${{ github.event.inputs.command == 'deploy' && github.event.inputs.env_name == 'prod' }}
+    runs-on: [self-hosted,prod,swarm]
+    environment: prod
+    needs: build
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+    steps:
+      - name: pull the docker image
+        run: |
+          docker pull "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+      - name: update the service
+        run: |
+          docker service update --force --image "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}" ms-stack_order-ms || true
   restart:
-    if: ${{ github.event.inputs.command == 'restart' }}
-    runs-on: self-hosted
+    if: ${{ github.event.inputs.command == 'restart' && github.event.inputs.env_name == 'dev' }}
+    runs-on: [self-hosted,dev,docker]
     steps:
       - name: restart docker container
         run: |
           docker restart ceramicraft-order-mservice || true
+  swarm_restart:
+    if: ${{ github.event.inputs.command == 'restart' && github.event.inputs.env_name == 'prod' }}
+    runs-on: [self-hosted,prod,swarm]
+    steps:
+      - name: restart the service
+        run: |
+          docker service update --force ms-stack_order-ms || true
   rollback:
-    if: ${{ github.event.inputs.command == 'rollback' }}
-    runs-on: self-hosted
+    if: ${{ github.event.inputs.command == 'rollback' && github.event.inputs.env_name == 'dev' }}
+    runs-on: [self-hosted,dev,docker]
     needs: generate-env
     env:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
@@ -103,11 +132,10 @@ jobs:
         run: |
           docker stop ceramicraft-order-mservice || true
           docker rm ceramicraft-order-mservice || true
-          docker run -d --name ceramicraft-order-mservice -v /home/ubuntu/logs:/app/logs --network ceramicraft-network --env-file env-file "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
-  swarm-deploy:
-    if: ${{ github.event.inputs.command == 'swarm-deploy' }}
-    runs-on: self-hosted
-    needs: build
+          docker run -d --name ceramicraft-order-mservice --network ceramicraft-network  -v /home/ubuntu/logs:/app/logs --env-file env-file "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
+  swarm-rollback:
+    if: ${{ github.event.inputs.command == 'rollback' && github.event.inputs.env_name == 'prod' }}
+    runs-on: [self-hosted,prod,swarm]
     env:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
     steps:
