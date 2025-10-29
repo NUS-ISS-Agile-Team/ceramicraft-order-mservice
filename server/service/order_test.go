@@ -16,6 +16,7 @@ import (
 
 	// "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils"
 	utilMocks "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils/mocks"
+	cacheMocks "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/cache/mocks"
 	daoMocks "github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao/mocks"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common/paymentpb"
@@ -1584,4 +1585,55 @@ func TestOrderServiceImpl_OrderAutoConfirm_PartialMessageFailure(t *testing.T) {
 
 	// Execute - should continue processing all orders despite one failure
 	service.OrderAutoConfirm(ctx)
+}
+func TestOrderServiceImpl_GetOrderStats_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	orderStatsCacheMock := cacheMocks.NewMockIOrderStatsCache(ctrl)
+
+	ctx := context.TODO()
+	expectedStats := types.OrderStats{
+		TotalOrders:      100,
+		TotalSales:       1000,
+		TotalCustomers:   10,
+		AvgSalesPerOrder: 10,
+	}
+
+	orderStatsCacheMock.EXPECT().GetOrderStats().Return(expectedStats, nil)
+
+	service := &OrderServiceImpl{
+		orderStatsCache: orderStatsCacheMock,
+	}
+
+	stats, err := service.GetOrderStats(ctx)
+	if err != nil {
+		t.Errorf("Expected no error, got: %s", err.Error())
+	}
+	if stats != expectedStats {
+		t.Errorf("Expected stats to be %v, got: %v", expectedStats, stats)
+	}
+}
+
+func TestOrderServiceImpl_GetOrderStats_Error(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	orderStatsCacheMock := cacheMocks.NewMockIOrderStatsCache(ctrl)
+
+	ctx := context.TODO()
+	expectedError := errors.New("cache error")
+
+	orderStatsCacheMock.EXPECT().GetOrderStats().Return(types.OrderStats{}, expectedError)
+
+	service := &OrderServiceImpl{
+		orderStatsCache: orderStatsCacheMock,
+	}
+
+	stats, err := service.GetOrderStats(ctx)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	if stats != (types.OrderStats{}) {
+		t.Errorf("Expected empty stats, got: %v", stats)
+	}
 }

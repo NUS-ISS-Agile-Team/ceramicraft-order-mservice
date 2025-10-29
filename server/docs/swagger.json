@@ -214,6 +214,35 @@
                 }
             }
         },
+        "/merchant/order-stats": {
+            "get": {
+                "description": "get Order Stats",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "get Order Stats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/merchant/orders/list": {
             "post": {
                 "description": "根据条件查询订单列表，支持分页",

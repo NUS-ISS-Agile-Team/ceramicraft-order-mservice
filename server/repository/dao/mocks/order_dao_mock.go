@@ -98,6 +98,21 @@ func (mr *MockOrderDaoMockRecorder) GetByOrderQuery(ctx, query interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByOrderQuery", reflect.TypeOf((*MockOrderDao)(nil).GetByOrderQuery), ctx, query)
 }
 
+// GetOrderStats mocks base method.
+func (m *MockOrderDao) GetOrderStats() (types.OrderStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrderStats")
+	ret0, _ := ret[0].(types.OrderStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrderStats indicates an expected call of GetOrderStats.
+func (mr *MockOrderDaoMockRecorder) GetOrderStats() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderStats", reflect.TypeOf((*MockOrderDao)(nil).GetOrderStats))
+}
+
 // UpdateStatusAndConfirmTime mocks base method.
 func (m *MockOrderDao) UpdateStatusAndConfirmTime(ctx context.Context, orderNo string, status int, t time.Time) error {
 	m.ctrl.T.Helper()

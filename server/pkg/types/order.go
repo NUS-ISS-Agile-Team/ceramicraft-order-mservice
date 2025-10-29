@@ -140,3 +140,10 @@ type OrderNoAndUserId struct {
 	OrderNo string `json:"order_no"`
 	UserID  int    `json:"user_id"`
 }
+
+type OrderStats struct {
+	TotalOrders      int `json:"total_orders"`
+	TotalSales       int `json:"total_sales"`
+	TotalCustomers   int `json:"total_customers"`
+	AvgSalesPerOrder int `json:"avg_sales_per_order"`
+}
