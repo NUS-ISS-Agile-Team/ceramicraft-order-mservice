@@ -1,0 +1,30 @@
+name: API-Smoke-Test
+
+on:
+  pull_request:          
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run JMeter Smoke
+        run: |
+          mkdir -p jmeter/report                   
+          docker run --rm -v $PWD:/workspace -w /workspace \
+            justb4/jmeter:latest \
+            -Jthreads=1 -Jiterations=1 \
+            -n -t .github/jmeter-scripts/order-api-test.jmx \
+            -l jmeter/result.jtl \
+            -e -o jmeter/report
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-smoke-report
+          path: jmeter/report/
