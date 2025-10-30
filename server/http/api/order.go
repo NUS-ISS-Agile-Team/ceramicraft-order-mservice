@@ -236,3 +236,21 @@ func ConfirmOrder(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, RespSuccess(ctx, "确认收货成功"))
 }
+
+// GetOrderStats godoc
+// @Summary get Order Stats
+// @Description get Order Stats
+// @Tags Order
+// @Accept json
+// @Produce json
+// @Success 200 {object} Response
+// @Failure 500 {object} Response
+// @Router /merchant/order-stats [get]
+func GetOrderStats(ctx *gin.Context) {
+	stats, err := service.GetOrderServiceInstance().GetOrderStats(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, RespError(ctx, err))
+		return
+	}
+	ctx.JSON(http.StatusOK, RespSuccess(ctx, stats))
+}

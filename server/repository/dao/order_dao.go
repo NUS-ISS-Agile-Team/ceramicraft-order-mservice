@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/log"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/consts"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/types"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
@@ -19,6 +21,7 @@ type OrderDao interface {
 	UpdateStatusAndConfirmTime(ctx context.Context, orderNo string, status int, t time.Time) (err error)
 	UpdateStatusWithDeliveryInfo(ctx context.Context, orderNo string, status int, t time.Time, shippingNo string) (err error)
 	AutoConfirmShippedOrders(ctx context.Context, shippedStatus int, deliveredStatus int, daysThreshold int) (orderNos []types.OrderNoAndUserId, err error)
+	GetOrderStats() (types.OrderStats, error)
 }
 
 var (
@@ -167,4 +170,20 @@ func (d *OrderDaoImpl) AutoConfirmShippedOrders(ctx context.Context, shippedStat
 	}
 
 	return orderNosAndUserIDs, nil
+}
+
+func (d *OrderDaoImpl) GetOrderStats() (types.OrderStats, error) {
+	var stats types.OrderStats
+	err := d.db.WithContext(context.Background()).
+		Model(&model.Order{}).
+		Select([]string{
+			"COUNT(order_no) AS total_orders",
+			"sum(total_amount) as total_sales",
+			"count(distinct user_id) as total_customers",
+		}).Where("status in (?)", []int{consts.DELIVERED, consts.PAYED, consts.SHIPPED}).
+		Scan(&stats).Error
+	if err != nil {
+		log.Logger.Errorf("Failed to get order stats: %v", err)
+	}
+	return stats, err
 }

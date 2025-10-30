@@ -13,6 +13,7 @@ import (
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/consts"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/types"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/pkg/utils"
+	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/cache"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/dao"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/server/repository/model"
 	"github.com/NUS-ISS-Agile-Team/ceramicraft-payment-mservice/common/paymentpb"
@@ -26,11 +27,13 @@ type OrderService interface {
 	CustomerGetOrderDetail(ctx context.Context, orderNo string, userID int) (detail *types.OrderDetail, err error)
 	UpdateOrderStatus(ctx context.Context, orderNo string, newStatus int) (err error)
 	OrderAutoConfirm(ctx context.Context)
+	GetOrderStats(ctx context.Context) (stats types.OrderStats, err error)
 }
 
 type OrderServiceImpl struct {
 	lock                 sync.Mutex
 	orderDao             dao.OrderDao
+	orderStatsCache      cache.IOrderStatsCache
 	orderProductDao      dao.OrderProductDao
 	orderLogDao          dao.OrderLogDao
 	productServiceClient productpb.ProductServiceClient
@@ -43,6 +46,7 @@ type OrderServiceImpl struct {
 func GetOrderServiceInstance() *OrderServiceImpl {
 	return &OrderServiceImpl{
 		orderDao:             dao.GetOrderDao(),
+		orderStatsCache:      cache.GetOrderStatsCache(),
 		orderProductDao:      dao.GetOrderProductDao(),
 		orderLogDao:          dao.GetOrderLogDao(),
 		productServiceClient: clients.GetProductClient(),
@@ -505,4 +509,8 @@ func (o *OrderServiceImpl) UpdateOrderStatus(ctx context.Context, orderNo string
 	}
 
 	return nil
+}
+
+func (o *OrderServiceImpl) GetOrderStats(ctx context.Context) (stats types.OrderStats, err error) {
+	return o.orderStatsCache.GetOrderStats()
 }

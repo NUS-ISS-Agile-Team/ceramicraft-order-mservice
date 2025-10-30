@@ -98,21 +98,21 @@ jobs:
           docker pull "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
       - name: update the service
         run: |
-          docker service update --force --image "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}" ms-stack_order-ms || true
+          docker service update --force --image "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}" ms-stack_order-ms
   restart:
     if: ${{ github.event.inputs.command == 'restart' && github.event.inputs.env_name == 'dev' }}
     runs-on: [self-hosted,dev,docker]
     steps:
       - name: restart docker container
         run: |
-          docker restart ceramicraft-order-mservice || true
+          docker restart ceramicraft-order-mservice
   swarm_restart:
     if: ${{ github.event.inputs.command == 'restart' && github.event.inputs.env_name == 'prod' }}
     runs-on: [self-hosted,prod,swarm]
     steps:
       - name: restart the service
         run: |
-          docker service update --force ms-stack_order-ms || true
+          docker service update --force ms-stack_order-ms
   rollback:
     if: ${{ github.event.inputs.command == 'rollback' && github.event.inputs.env_name == 'dev' }}
     runs-on: [self-hosted,dev,docker]
@@ -144,4 +144,4 @@ jobs:
           docker pull "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}"
       - name: update the service
         run: |
-          docker service update --force --image "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}" ms-stack_order-ms || true
+          docker service update --force --image "${DOCKER_HUB_USERNAME}/ceramicraft-order-mservice:${{ github.event.inputs.version }}" ms-stack_order-ms

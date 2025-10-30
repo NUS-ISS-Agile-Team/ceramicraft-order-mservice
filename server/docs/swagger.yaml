@@ -384,6 +384,25 @@ paths:
       summary: 用户侧查询订单列表
       tags:
       - Order
+  /merchant/order-stats:
+    get:
+      consumes:
+      - application/json
+      description: get Order Stats
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Response'
+      summary: get Order Stats
+      tags:
+      - Order
   /merchant/orders/{order_no}:
     get:
       consumes:
