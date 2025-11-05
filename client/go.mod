@@ -1,6 +1,6 @@
 module github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/client
 
-go 1.24.0
+go 1.24.9
 
 require (
 	github.com/NUS-ISS-Agile-Team/ceramicraft-order-mservice/common v0.0.0-20250928114520-6e4343bff960
